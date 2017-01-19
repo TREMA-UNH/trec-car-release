@@ -133,7 +133,7 @@ all.cbor.paragraphs : transformed-omit-pages.cbor transformed-omit-pages.cbor.js
 
 
 clean-export-% :
-	rm $*.outlines $*.paragraph $*.qrels
+	echo rm -f $*.outlines $*.paragraph $**.qrels
 
 
 .PHONY : README.mkd
@@ -157,10 +157,11 @@ corpus-${version}.zip : README.mkd LICENSE all.cbor.paragraphs
 	zip corpus-${version}.zip corpus-${version}/*
 
 .PHONY: cleancorpus
-cleancorpus:                                                                                                                                                                    rm all.cbor.paragraphs corpus-${version}.zip                                                                                                                     
+cleancorpus:
+	echo rm -f all.cbor.paragraphs corpus-${version}.zip                                                                                                                     
 .PHONY: cleanrelease
 cleanrelease : cleancorpus clean-export-fold*.train.cbor
-	rm release-${version}.zip 
+	echo -f rm release-${version}.zip 
 
 .PHONY : spritzer
 spritzer : spritzer.cbor.outlines README.mkd
@@ -168,7 +169,7 @@ spritzer : spritzer.cbor.outlines README.mkd
 
 .PHONY : cleanspritzer
 cleanspritzer : clean-spritzer.cbor
-	rm spritzer-${version}.zip
+	echo rm -f spritzer-${version}.zip
 
 
 # build galago index
@@ -207,7 +208,6 @@ kbpreds='(!(${prefixMustPreds}) & train-set)'
 %.release-kb.zip : %.kb.index %.linkcontexts.index %.kb.warc %.linkcontexts.warc
 	zip -r $@ $+
 
-.PHONY : cleanreleasekb
 clean-%.release-kb : 
-	echo "rm" $*.release-kb.zip $*.kb.index $*.linkcontexts.index $*.kb.warc $*.linkcontexts.warc
+	echo rm -f $*.release-kb.zip $*.kb.index $*.linkcontexts.index $*.kb.warc $*.linkcontexts.warc
 
