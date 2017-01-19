@@ -168,7 +168,7 @@ spritzer : spritzer.cbor.outlines README.mkd
 	zip spritzer-${version}.zip spritzer.cbor.outlines spritzer.cbor spritzer.cbor.paragraphs spritzer*qrels README.mkd LICENSE
 
 .PHONY : cleanspritzer
-cleanspritzer : clean-spritzer.cbor
+cleanspritzer : clean-export-spritzer.cbor
 	echo rm -f spritzer-${version}.zip
 
 
