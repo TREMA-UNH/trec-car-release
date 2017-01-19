@@ -1,6 +1,6 @@
 bin=~/trec-car/mediawiki-annotate/bin
 root_url=http://dumps.wikimedia.your.org/enwiki/20161220
-version=v1.2-snapshot
+version=v1.3
              
 all : all.cbor.json
 
@@ -26,8 +26,6 @@ all.cbor : $(subst .bz2,.cbor,$(wildcard *.bz2))
 %.cbor.outlines : %.cbor %.cbor.json
 	${bin}/trec-car-export $<
 
-all.extracts : $(subst .bz2,.cbor.outlines,$(wildcard *.bz2))
-
 #### Baselines
 # Corpus statistics
 %.cbor.stats : %.cbor %.cbor.json
@@ -52,8 +50,7 @@ run : all.index all.stats
 
 
 #### Filter
-prefixPreds=    name-has-prefix "Category:" | \
-		name-has-prefix "Category talk:" | \
+prefixMustPreds= name-has-prefix "Category talk:" | \
 		name-has-prefix "Talk:" | \
 		name-has-prefix "File:" | \
 		name-has-prefix "File talk:" | \
@@ -64,13 +61,14 @@ prefixPreds=    name-has-prefix "Category:" | \
 		name-has-prefix "Wikipedia:" | \
 		name-has-prefix "Template:" | \
 		name-has-prefix "Template talk:" | \
-		name-has-prefix "Portal:" | \
 		name-has-prefix "Module:" | \
 		name-has-prefix "Draft:" | \
 		name-has-prefix "Help:" | \
 		name-has-prefix "Book:" | \
 		name-has-prefix "TimedText:" | \
-		name-has-prefix "MediaWiki:" | \
+		name-has-prefix "MediaWiki:"  
+prefixMaybePreds= name-has-prefix "Category:" | 
+                name-has-prefix "Portal:" | \
                 name-has-prefix "List of " | \
                 name-has-prefix "Lists of "
 categoryPreds = category-contains " births" | \
@@ -107,7 +105,7 @@ categoryPreds = category-contains " births" | \
                 category-contains "years of the " | \
                 category-contains "lists of " 
 
-preds='(!(${prefixPreds}) & !is-redirect & !is-disambiguation & !(${categoryPreds}))'
+preds='(!(${prefixMustPreds}) & !(${prefixMaybePreds}) & !is-redirect & !is-disambiguation &  &!(${categoryPreds}))'
 
 all-omit-pages.cbor : all.cbor
 	${bin}/trec-car-filter all.cbor -o $@ ${preds}
@@ -133,18 +131,44 @@ all.cbor.paragraphs : transformed-omit-pages.cbor transformed-omit-pages.cbor.js
 %.cbor.outlines : %.cbor %.cbor.json
 	${bin}/trec-car-export $< -o $<
 
+
+clean-export-% :
+	rm $*.outlines $*.paragraph $*.qrels
+
+
+.PHONY : README.mkd
 README.mkd : 
 	echo "This data set is part of the TREC CAR dataset version ${version}.\nThe included TREC CAR data sets by Laura Dietz, Ben Gamari available at trec-car.cs.unh.edu are provided under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/deed.en_US">Creative Commons Attribution-ShareAlike 3.0 Unported License</a>. The data is based on content extracted from www.Wikipedia.org that is licensed under the Creative Commons Attribution-ShareAlike 3.0 Unported License." > README.mkd
 
 .PHONY: release
-release : all.cbor.paragraphs fold0.train.cbor.outlines fold1.train.cbor.outlines fold2.train.cbor.outlines fold3.train.cbor.outlines fold4.train.cbor.outlines README.mkd 
-	zip release-${version}.zip fold*train.cbor fold*paragraphs fold*outlines fold*train*qrels README.mkd LICENSE
-	cp -f all.cbor.paragraphs release-${version}.paragraphs
-	zip corpus-${version}.zip release-${version}.paragraphs README.mkd LICENSE
+release : release-${version}.zip corpus-${version}.zip
 
-.PHONY: spritzer
+release-${version}.zip : all.cbor.paragraphs fold0.train.cbor.outlines fold1.train.cbor.outlines fold2.train.cbor.outlines fold3.train.cbor.outlines fold4.train.cbor.outlines README.mkd 
+	rm -R release-${version}
+	mkdir release-${version}
+	cp fold*train.cbor fold*paragraphs fold*outlines fold*train*qrels README.mkd LICENSE release-${version}
+	zip release-${version}.zip release-${version}/*
+
+corpus-${version}.zip : README.mkd LICENSE all.cbor.paragraphs
+	rm -R corpus-${version}
+	mkdir corpus-${version}
+	cp -f all.cbor.paragraphs corpus-${version}/release-${version}.paragraphs
+	cp README.mkd LICENSE corpus-${version}/
+	zip corpus-${version}.zip corpus-${version}/*
+
+.PHONY: cleancorpus
+cleancorpus:                                                                                                                                                                    rm all.cbor.paragraphs corpus-${version}.zip                                                                                                                     
+.PHONY: cleanrelease
+cleanrelease : cleancorpus clean-export-fold*.train.cbor
+	rm release-${version}.zip 
+
+.PHONY : spritzer
 spritzer : spritzer.cbor.outlines README.mkd
 	zip spritzer-${version}.zip spritzer.cbor.outlines spritzer.cbor spritzer.cbor.paragraphs spritzer*qrels README.mkd LICENSE
+
+.PHONY : cleanspritzer
+cleanspritzer : clean-spritzer.cbor
+	rm spritzer-${version}.zip
 
 
 # build galago index
@@ -154,6 +178,12 @@ spritzer : spritzer.cbor.outlines README.mkd
 #    java -jar ./target/simplir-galago-1.0-SNAPSHOT-jar-with-dependencies.jar build simplir-galago.json 
 #
 #Paths must be global and you should double check that the job-tmp directory is empty before starting (or it will try to finish indexing the last attempt).
+
+
+kbpreds='(!(${prefixMustPreds}) & train-set)'
+%.halfwiki.cbor : %.cbor
+	${bin}/trec-car-filter $< -o $@ ${kbpreds}	
+
 
 %.linkcontexts.warc : %.cbor
 	${bin}/trec-car-extract-link-contexts $< -o $@
@@ -170,6 +200,14 @@ spritzer : spritzer.cbor.outlines README.mkd
 %.kb.index : %.kb.warc
 	java -jar ${bin}/galago.jar build --indexPath=$@ --inputPath=$< --galagoJobDir=/tmp/galagojob-$@-tmp kb-galago.json
 
+%.index.search : %.index
+	java -jar ${bin}/galago.jar search --port=2507 --index=$<
 
+.PHONY: release-kb
+%.release-kb.zip : %.kb.index %.linkcontexts.index %.kb.warc %.linkcontexts.warc
+	zip -r $@ $+
 
+.PHONY : cleanreleasekb
+clean-%.release-kb : 
+	echo "rm" $*.release-kb.zip $*.kb.index $*.linkcontexts.index $*.kb.warc $*.linkcontexts.warc
 
