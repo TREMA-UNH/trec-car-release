@@ -23,3 +23,9 @@ Upload data to trec-car.cs.unh.edu
 ----------------------------------
 rsync -a *v?.?*zip lava:trec-car/public_html/datareleases
 
+
+
+Test30
+-------
+make test30
+

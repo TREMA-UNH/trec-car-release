@@ -46,7 +46,7 @@ run : all.index all.stats
 
 #### EQFE Knowledge-base extraction
 %.warc : %.cbor
-	${bin}/trec-car-extract-kb -o $@ $< +RTS -s -RTS
+	${bin}/trec-car-extract-kb -o $@ $< 
 
 
 #### Filter
@@ -144,13 +144,13 @@ README.mkd :
 release : release-${version}.zip corpus-${version}.zip
 
 release-${version}.zip : all.cbor.paragraphs fold0.train.cbor.outlines fold1.train.cbor.outlines fold2.train.cbor.outlines fold3.train.cbor.outlines fold4.train.cbor.outlines README.mkd 
-	rm -R release-${version}
+	rm -Rf release-${version}
 	mkdir release-${version}
 	cp fold*train.cbor fold*paragraphs fold*outlines fold*train*qrels README.mkd LICENSE release-${version}
 	zip release-${version}.zip release-${version}/*
 
 corpus-${version}.zip : README.mkd LICENSE all.cbor.paragraphs
-	rm -R corpus-${version}
+	rm -Rf corpus-${version}
 	mkdir corpus-${version}
 	cp -f all.cbor.paragraphs corpus-${version}/release-${version}.paragraphs
 	cp README.mkd LICENSE corpus-${version}/
@@ -210,4 +210,15 @@ kbpreds='(!(${prefixMustPreds}) & train-set)'
 
 clean-%.release-kb : 
 	echo rm -f $*.release-kb.zip $*.kb.index $*.linkcontexts.index $*.kb.warc $*.linkcontexts.warc
+
+
+testset/all.test30.cbor : all.cbor
+	${bin}/trec-car-filter all.cbor -o testset/all.test30.cbor '( name-set-from-file "testset/pagenames.txt" )'
+
+.PHONY: test30
+test30: testset/all.test30.cbor testset/all.test30.cbor.outlines all.halfwiki.cbor
+	testset/all.test30.cbor.outlines
+	${bin}/trec-car-filter fold0.train.cbor -o testset/fold0.kb.test30.cbor '(! ( name-set-from-file "testset/pagenames.txt" ))'
+	${bin}/trec-car-filter all.halfwiki.cbor -o testset/all.halfwiki.kb.test30.cbor '(! ( name-set-from-file "testset/pagenames.txt" ))'
+	zip -r testset/test30.entities.zip testset/all.test30.cbor testset/all.test30.cbor.article.entity.qrels  testset/fold0.kb.test30.cbor testset/all.halfwiki.kb.test30.cbor LICENSE README.mkd
 
