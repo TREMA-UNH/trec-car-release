@@ -105,7 +105,7 @@ categoryPreds = category-contains " births" | \
                 category-contains "years of the " | \
                 category-contains "lists of " 
 
-preds='(!(${prefixMustPreds}) & !(${prefixMaybePreds}) & !is-redirect & !is-disambiguation &  &!(${categoryPreds}))'
+preds='(!(${prefixMustPreds}) & !(${prefixMaybePreds}) & !is-redirect & !is-disambiguation & !(${categoryPreds}))'
 
 all-omit-pages.cbor : all.cbor
 	${bin}/trec-car-filter all.cbor -o $@ ${preds}
