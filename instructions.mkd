@@ -13,8 +13,11 @@ make -j3 -k
 
 Release TREC-CAR data
 ---------------------
-make release-v?.?
-make spritzer-v?.?
+# make release-v?.?
+# make spritzer-v?.?
+
+make all.halfwiki.cbor spritzer release
+
 
 Upload data to trec-car.cs.unh.edu
 ----------------------------------

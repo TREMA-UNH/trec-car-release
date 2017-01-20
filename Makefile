@@ -67,7 +67,7 @@ prefixMustPreds= name-has-prefix "Category talk:" | \
 		name-has-prefix "Book:" | \
 		name-has-prefix "TimedText:" | \
 		name-has-prefix "MediaWiki:"  
-prefixMaybePreds= name-has-prefix "Category:" | 
+prefixMaybePreds= name-has-prefix "Category:" | \
                 name-has-prefix "Portal:" | \
                 name-has-prefix "List of " | \
                 name-has-prefix "Lists of "
