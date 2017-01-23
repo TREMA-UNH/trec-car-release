@@ -1,6 +1,6 @@
-bin=~/trec-car/mediawiki-annotate/bin
+bin=~/trec-car/mediawiki-annotate-release/bin
 root_url=http://dumps.wikimedia.your.org/enwiki/20161220
-version=v1.3
+version=v1.4
              
 all : all.cbor.json
 
