@@ -217,7 +217,6 @@ testset/all.test30.cbor : all.cbor
 
 .PHONY: test30
 test30: testset/all.test30.cbor testset/all.test30.cbor.outlines all.halfwiki.cbor
-	testset/all.test30.cbor.outlines
 	${bin}/trec-car-filter fold0.train.cbor -o testset/fold0.kb.test30.cbor '(! ( name-set-from-file "testset/pagenames.txt" ))'
 	${bin}/trec-car-filter all.halfwiki.cbor -o testset/all.halfwiki.kb.test30.cbor '(! ( name-set-from-file "testset/pagenames.txt" ))'
 	zip -r testset/test30.entities.zip testset/all.test30.cbor testset/all.test30.cbor.article.entity.qrels  testset/fold0.kb.test30.cbor testset/all.halfwiki.kb.test30.cbor LICENSE README.mkd
