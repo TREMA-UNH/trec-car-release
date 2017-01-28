@@ -6,6 +6,9 @@ all : all.cbor.json
 
 download :
 	wget -r --no-parent --accept '*-pages-articles[0-9]*.bz2' ${root_url}
+
+upload-% : %
+	 rsync -a $* dietz@lava:trec-car/public_html/datareleases/
              
 #### Import  
 # Extract pages
