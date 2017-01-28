@@ -189,6 +189,13 @@ kbpreds='(!(${prefixMustPreds}) & train-set)'
 	${bin}/trec-car-filter $< -o $@ ${kbpreds}	
 
 
+.PHONY: release-halfwiki
+release-halfwiki : all.halfwiki.cbor README.mkd
+	tar cJvf halfwiki-${version}.tar.xz all.halfwiki.cbor README.mkd LICENSE
+
+
+
+
 %.linkcontexts.warc : %.cbor
 	${bin}/trec-car-extract-link-contexts $< -o $@
 
