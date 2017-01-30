@@ -232,6 +232,16 @@ test30: testset/all.test30.cbor testset/all.test30.cbor.outlines all.halfwiki.cb
 	zip -r testset/test30.entities.zip testset/all.test30.cbor testset/all.test30.cbor.article.entity.qrels  testset/fold0.kb.test30.cbor testset/all.halfwiki.kb.test30.cbor LICENSE README.mkd
 
 
+test200set/all.test200.cbor : all.cbor
+	${bin}/trec-car-filter all.cbor -o test200set/all.test200.cbor '( name-set-from-file "test200set/pagenames200.txt" )'
+
+.PHONY: test200
+test200: test200set/all.test200.cbor test200set/all.test200.cbor.outlines all.halfwiki.cbor
+	${bin}/trec-car-filter fold0.train.cbor -o test200set/fold0.kb.test200.cbor '(! ( name-set-from-file "test200set/pagenames200.txt" ))'
+	${bin}/trec-car-filter all.halfwiki.cbor -o test200set/all.halfwiki.kb.test200.cbor '(! ( name-set-from-file "test200set/pagenames200.txt" ))'
+	zip -r test200set/test200.entities.zip test200set/all.test200.cbor test200set/all.test200.cbor.article.entity.qrels  test200set/fold0.kb.test200.cbor test200set/all.halfwiki.kb.test200.cbor LICENSE README.mkd
+
+
 .PHONY: datarelease
 datarelease: release spritzer all.halfwiki.cbor test30
 
