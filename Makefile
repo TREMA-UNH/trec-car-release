@@ -242,6 +242,10 @@ test200: test200set/all.test200.cbor test200set/all.test200.cbor.outlines all.ha
 	zip -r test200set/test200.entities.zip test200set/all.test200.cbor test200set/all.test200.cbor.article.entity.qrels  test200set/fold0.kb.test200.cbor test200set/all.halfwiki.kb.test200.cbor LICENSE README.mkd
 
 
+.PHONY: release-test200
+release-test200: test200set/all.test200.cbor test200set/all.test200.cbor.outlines 
+	zip -r test200-v1.4.zip test200set/all.test200.cbor*
+
 .PHONY: datarelease
 datarelease: release spritzer all.halfwiki.cbor test30
 
