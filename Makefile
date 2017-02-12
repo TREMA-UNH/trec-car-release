@@ -243,8 +243,8 @@ test200: test200set/all.test200.cbor test200set/all.test200.cbor.outlines all.ha
 
 
 .PHONY: release-test200
-release-test200: test200set/all.test200.cbor test200set/all.test200.cbor.outlines 
-	zip -r test200-v1.4.zip test200set/all.test200.cbor*
+release-test200: test200set/all.test200.cbor test200set/all.test200.cbor.outlines README.mkd 
+	zip -r test200-v1.4.zip test200set/all.test200.cbor* LICENSE README.mkd
 
 .PHONY: datarelease
 datarelease: release spritzer all.halfwiki.cbor test30
