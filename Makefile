@@ -117,9 +117,19 @@ all-omit-pages.cbor : all.cbor
 transformed-omit-pages.cbor : all-omit-pages.cbor
 	${bin}/trec-car-transform-content all-omit-pages.cbor -o $@
 
+
+filtered.%.cbor : %.cbor
+	${bin}/trec-car-filter $< -o omit.$< ${preds}
+	${bin}/trec-car-transform-content omit.$< -o $@
+
+test.cbor : transformed-omit-pages.cbor
+	${bin}/trec-car-filter transformed-omit-pages.cbor -o $@ test-set
+
 train.cbor : transformed-omit-pages.cbor
 	${bin}/trec-car-filter transformed-omit-pages.cbor -o $@ train-set
 
+fold%.test.cbor : test.cbor test.cbor.json
+	${bin}/trec-car-filter $< -o $@ "fold $*"
 
 fold%.train.cbor : train.cbor train.cbor.json
 	${bin}/trec-car-filter $< -o $@ "fold $*"
@@ -146,7 +156,7 @@ README.mkd :
 .PHONY: release
 release : release-${version}.zip corpus-${version}.zip
 
-release-${version}.zip : all.cbor.paragraphs fold0.train.cbor.outlines fold1.train.cbor.outlines fold2.train.cbor.outlines fold3.train.cbor.outlines fold4.train.cbor.outlines README.mkd 
+release-${version}.zip : all.cbor.paragraphs fold0.train.cbor.outlines fold1.train.cbor.outlines fold2.train.cbor.outlines fold3.train.cbor.outlines fold4.train.cbor.outlines fold0.test.cbor.outlines fold1.test.cbor.outlines fold2.test.cbor.outlines fold3.test.cbor.outlines fold4.test.cbor.outlines README.mkd 
 	rm -Rf release-${version}
 	mkdir release-${version}
 	cp fold*train.cbor fold*paragraphs fold*outlines fold*train*qrels README.mkd LICENSE release-${version}
@@ -241,6 +251,14 @@ test200: test200set/all.test200.cbor test200set/all.test200.cbor.outlines all.ha
 	${bin}/trec-car-filter all.halfwiki.cbor -o test200set/all.halfwiki.kb.test200.cbor '(! ( name-set-from-file "test200set/pagenames200.txt" ))'
 	zip -r test200set/test200.entities.zip test200set/all.test200.cbor test200set/all.test200.cbor.article.entity.qrels  test200set/fold0.kb.test200.cbor test200set/all.halfwiki.kb.test200.cbor LICENSE README.mkd
 
+.PHONY: test200folds
+test200folds: test200set/all.test200.cbor test200set/all.test200.cbor.outlines all.halfwiki.cbor
+	ln -s fold1.train.cbor test200set/fold1.kb.test200.cbor
+	ln -s fold2.train.cbor test200set/fold2.kb.test200.cbor
+	ln -s fold3.train.cbor test200set/fold3.kb.test200.cbor
+	ln -s fold4.train.cbor test200set/fold4.kb.test200.cbor
+
+
 
 .PHONY: release-test200
 release-test200: test200set/all.test200.cbor test200set/all.test200.cbor.outlines README.mkd 
@@ -249,3 +267,14 @@ release-test200: test200set/all.test200.cbor test200set/all.test200.cbor.outline
 .PHONY: datarelease
 datarelease: release spritzer all.halfwiki.cbor test30
 
+
+
+
+brexit/seeds.brexit.cbor : all.cbor
+	${bin}/trec-car-filter $< -o $@ '( name-set-from-file "brexit/brexitpages.txt" )' 
+
+brexit/seeds.brexit.filtered.cbor : brexit/seeds.brexit.cbor
+	${bin}/trec-car-transform-content $< -o $@
+
+.PHONY: brexit
+brexit : brexit/seeds.brexit.filtered.cbor.outlines brexit/seeds.brexit.cbor.outlines
