@@ -1,7 +1,7 @@
 Create new release directory
 ----------------------------
 
-clone . release-v?.?
+git clone . release-v?.?
 cd release-v?.?
 ln -s ../*bz2 .
 

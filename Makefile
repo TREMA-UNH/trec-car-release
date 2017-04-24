@@ -1,6 +1,6 @@
 bin=~/trec-car/mediawiki-annotate-release/bin
 root_url=http://dumps.wikimedia.your.org/enwiki/20161220
-version=v1.4
+version=v1.5
              
 all : all.cbor.json
 
@@ -122,11 +122,11 @@ filtered.%.cbor : %.cbor
 	${bin}/trec-car-filter $< -o omit.$< ${preds}
 	${bin}/trec-car-transform-content omit.$< -o $@
 
-test.cbor : transformed-omit-pages.cbor
-	${bin}/trec-car-filter transformed-omit-pages.cbor -o $@ test-set
+test.cbor : filtered.all.cbor
+	${bin}/trec-car-filter $< -o $@ test-set
 
-train.cbor : transformed-omit-pages.cbor
-	${bin}/trec-car-filter transformed-omit-pages.cbor -o $@ train-set
+train.cbor : filtered.all.cbor
+	${bin}/trec-car-filter $< -o $@ train-set
 
 fold%.test.cbor : test.cbor test.cbor.json
 	${bin}/trec-car-filter $< -o $@ "fold $*"
@@ -138,11 +138,11 @@ spritzerPreds='(name-in-set ["Green sea turtle", "Hydraulic Fracturing", "Spent 
 spritzer.cbor : transformed-omit-pages.cbor transformed-omit-pages.cbor.json
 	${bin}/trec-car-filter $< -o $@ ${spritzerPreds}
 
-all.cbor.paragraphs : transformed-omit-pages.cbor transformed-omit-pages.cbor.json
-	${bin}/trec-car-export $< -o all.cbor 
+%.cbor.paragraphs : %.cbor %.cbor.json
+	${bin}/trec-car-export $< -o $@ 
 
 %.cbor.outlines : %.cbor %.cbor.json
-	${bin}/trec-car-export $< -o $<
+	${bin}/trec-car-export $< -o $@
 
 
 clean-export-% :
@@ -156,13 +156,13 @@ README.mkd :
 .PHONY: release
 release : release-${version}.zip corpus-${version}.zip
 
-release-${version}.zip : all.cbor.paragraphs fold0.train.cbor.outlines fold1.train.cbor.outlines fold2.train.cbor.outlines fold3.train.cbor.outlines fold4.train.cbor.outlines fold0.test.cbor.outlines fold1.test.cbor.outlines fold2.test.cbor.outlines fold3.test.cbor.outlines fold4.test.cbor.outlines README.mkd 
+release-${version}.zip : filtered.all.cbor.paragraphs fold0.train.cbor.outlines fold1.train.cbor.outlines fold2.train.cbor.outlines fold3.train.cbor.outlines fold4.train.cbor.outlines fold0.test.cbor.outlines fold1.test.cbor.outlines fold2.test.cbor.outlines fold3.test.cbor.outlines fold4.test.cbor.outlines README.mkd 
 	rm -Rf release-${version}
 	mkdir release-${version}
 	cp fold*train.cbor fold*paragraphs fold*outlines fold*train*qrels README.mkd LICENSE release-${version}
 	zip release-${version}.zip release-${version}/*
 
-corpus-${version}.zip : README.mkd LICENSE all.cbor.paragraphs
+corpus-${version}.zip : README.mkd LICENSE filtered.all.cbor.paragraphs
 	rm -Rf corpus-${version}
 	mkdir corpus-${version}
 	cp -f all.cbor.paragraphs corpus-${version}/release-${version}.paragraphs
