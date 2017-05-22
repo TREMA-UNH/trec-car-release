@@ -139,10 +139,10 @@ spritzer.cbor : transformed-omit-pages.cbor transformed-omit-pages.cbor.json
 	${bin}/trec-car-filter $< -o $@ ${spritzerPreds}
 
 %.cbor.paragraphs : %.cbor %.cbor.json
-	${bin}/trec-car-export $< -o $@ 
+	${bin}/trec-car-export $< -o $*.cbor 
 
 %.cbor.outlines : %.cbor %.cbor.json
-	${bin}/trec-car-export $< -o $@
+	${bin}/trec-car-export $< -o $*.cbor
 
 
 clean-export-% :
@@ -165,7 +165,7 @@ release-${version}.zip : filtered.all.cbor.paragraphs fold0.train.cbor.outlines 
 corpus-${version}.zip : README.mkd LICENSE filtered.all.cbor.paragraphs
 	rm -Rf corpus-${version}
 	mkdir corpus-${version}
-	cp -f all.cbor.paragraphs corpus-${version}/release-${version}.paragraphs
+	cp -f filtered.all.cbor.paragraphs corpus-${version}/release-${version}.paragraphs
 	cp README.mkd LICENSE corpus-${version}/
 	zip corpus-${version}.zip corpus-${version}/*
 
