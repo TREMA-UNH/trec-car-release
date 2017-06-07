@@ -139,7 +139,7 @@ function test200 {
 	benchmarks-train test200 test200.titles
 }	
 function benchmarkY1 {
-	#benchmarks-train benchmarkY1train benchmarkY1.titles
+	benchmarks-train benchmarkY1train benchmarkY1.titles
 	benchmarks-test benchmarkY1test benchmarkY1.titles
 }	
 
