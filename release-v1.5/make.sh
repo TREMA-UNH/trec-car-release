@@ -122,14 +122,11 @@ function benchmarks-test {
 	createDir $dir
 	cp -sf ${pagefile} ${dir}.titles.txt
 
-
-
-
 	make benchmark-test-${dir}
 	make ${dir}/test.${dir}.cbor.outlines
 	make ${dir}/test.${dir}.titles
 
-	#find ${dir}/ -empty -delete
+	find ${dir}/ -empty -delete
 	
 	
 	archiveDir $dir
@@ -141,7 +138,14 @@ function test200 {
 function benchmarkY1 {
 	benchmarks-train benchmarkY1train benchmarkY1.titles
 	benchmarks-test benchmarkY1test benchmarkY1.titles
-}	
+
+	makeDir benchmarkY1test.public
+	cp benchmarkY1test/titles benchmarkY1test.public/
+	cp benchmarkY1test/test.benchmarkY1test.titles benchmarkY1test.public/
+	cp benchmarkY1test/test.benchmarkY1test.cbor.outlines benchmarkY1test.public/
+	       
+ 	archiveDir benchmarkY1test.public
+}
 
 
 	
@@ -158,7 +162,7 @@ function makeprecious {
 function all {
 	# linkRaw
 	# rawCbor
-	unprocessedtrain
+	#unprocessedtrain
 	paragraph
 	trainfolds
 	test200
