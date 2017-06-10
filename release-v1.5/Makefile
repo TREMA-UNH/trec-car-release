@@ -142,7 +142,6 @@ articles.cbor : all.cbor
 	${bin}/trec-car-rewrite-duplicates -o $@ -d $@.duplicates $<
 
 
-${bin}/trec-car-duplicates-rewrite-table -o duplicates-rewrite-table.tsv -d articles.dedup.cbor.duplicates
 
 processed.articles.cbor : articles.dedup.cbor
 	${bin}/trec-car-filter $< -o $@ ${preds}	
