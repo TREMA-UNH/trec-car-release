@@ -93,6 +93,8 @@ categoryPreds = category-contains " births" | \
                 category-contains "lists of " 
 
 preds='(!(${prefixMustPreds}) & !(${prefixMaybePreds}) & !is-redirect & !is-disambiguation & !(${categoryPreds}))'
+articlepreds='(!(${prefixMustPreds})  & !is-redirect & !is-disambiguation & !name-has-prefix "Category:")'
+
 
 transformed.%.cbor : %.cbor
 	${bin}/trec-car-transform-content omit.$< -o $@
@@ -113,6 +115,9 @@ filtered.%.cbor : %.cbor
 .PHONY : README.mkd
 README.mkd : 
 	echo "This data set is part of the TREC CAR dataset version ${version}.\nThe included TREC CAR data sets by Laura Dietz, Ben Gamari available at trec-car.cs.unh.edu are provided under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/deed.en_US">Creative Commons Attribution-ShareAlike 3.0 Unported License</a>. The data is based on content extracted from www.Wikipedia.org that is licensed under the Creative Commons Attribution-ShareAlike 3.0 Unported License." > README.mkd
+	echo "" >> README.mkd
+	echo "mediawiki-annotate: $(git -C $bin rev-parse HEAD)" >> README.mkd
+	echo "build system: $(git -C . rev-parse HEAD)" >> README.mkd
 
 
 kbpreds='(!(${prefixMustPreds}) & train-set)'
@@ -123,13 +128,23 @@ halfwiki.cbor : all.cbor
 
 
 articles.cbor : all.cbor
-	${bin}/trec-car-filter $< -o $@ ${namespacepreds}	
+	${bin}/trec-car-filter $< -o $@.raw ${articlepreds}	
+	${bin}/trec-car-transform-content $@.raw --sections-categories -o $@ 
 
 
-%.dedup.cbor : %.cbor %.cbor.paragraphs
-	# ${bin}/trec-car-find-duplicates -t 0.9 -n 200000 -o $@.duplicates $<.paragraphs +RTS -N30 -A64M -s -RTS 
+.PRECIOUS: %.dedup.cbor.duplicates
+.PRECIOUS: processed.articles.cbor
+.PRECIOUS: all.cbor
+.PRECIOUS: articles.cbor.paragraphs
+
+%.dedup.cbor.duplicates : %.cbor.paragraphs
+	${bin}/trec-car-minhash-duplicates --embeddings glove.6B.300d.txt -t 0.9 --projections 12 -o $@ $< +RTS -N30 -A64M -s -RTS 	
+
+%.dedup.cbor : %.cbor %.dedup.cbor.duplicates
+	${bin}/trec-car-duplicates-rewrite-table -o $@.duplicates.table -d $@.duplicates
 	${bin}/trec-car-rewrite-duplicates -o $@ -d $@.duplicates $<
-	
+
+
 
 processed.articles.cbor : articles.dedup.cbor
 	${bin}/trec-car-filter $< -o $@ ${preds}	
