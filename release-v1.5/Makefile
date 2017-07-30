@@ -93,6 +93,8 @@ categoryPreds = category-contains " births" | \
                 category-contains "lists of " 
 
 preds='(!(${prefixMustPreds}) & !(${prefixMaybePreds}) & !is-redirect & !is-disambiguation & !(${categoryPreds}))'
+articlepreds='(!(${prefixMustPreds})  & !is-redirect & !is-disambiguation & !name-has-prefix "Category:")'
+
 
 transformed.%.cbor : %.cbor
 	${bin}/trec-car-transform-content omit.$< -o $@
@@ -126,7 +128,8 @@ halfwiki.cbor : all.cbor
 
 
 articles.cbor : all.cbor
-	${bin}/trec-car-filter $< -o $@ ${namespacepreds}	
+	${bin}/trec-car-filter $< -o $@.raw ${articlepreds}	
+	${bin}/trec-car-transform-content $@.raw --sections-categories -o $@ 
 
 
 .PRECIOUS: %.dedup.cbor.duplicates

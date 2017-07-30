@@ -139,7 +139,7 @@ function benchmarkY1 {
 	benchmarks-train benchmarkY1train benchmarkY1.titles
 	benchmarks-test benchmarkY1test benchmarkY1.titles
 
-	makeDir benchmarkY1test.public
+	createDir benchmarkY1test.public
 	cp benchmarkY1test/titles benchmarkY1test.public/
 	cp benchmarkY1test/test.benchmarkY1test.titles benchmarkY1test.public/
 	cp benchmarkY1test/test.benchmarkY1test.cbor.outlines benchmarkY1test.public/
@@ -163,7 +163,7 @@ function all {
 	# linkRaw
 	# rawCbor
 	#unprocessedtrain
-	paragraph
+	#paragraph
 	trainfolds
 	test200
 	benchmarkY1
