@@ -159,13 +159,28 @@ function makeprecious {
 	make articles.cbor.paragraphs
 }	
 
+function raw {
+	echo "making linkRaw"
+	linkRaw
+
+	echo "making rawCbor"
+	rawCbor
+}
+
 function all {
-	# linkRaw
-	# rawCbor
-	#unprocessedtrain
-	#paragraph
+	echo "making unprocessedtrain"
+	unprocessedtrain
+
+	echo "making paragraph"
+	paragraph
+
+	echo "making trainfolds"
 	trainfolds
+
+	echo "making test200"
 	test200
+
+	echo "making benchmarkY1"
 	benchmarkY1
 }
 

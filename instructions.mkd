@@ -1,14 +1,17 @@
 Create new release directory
 ----------------------------
 
-git clone . release-v?.?
+git clone git@github.com:TREMA-UNH/trec-car-release.git release-v?.?
 cd release-v?.?
-ln -s ../*bz2 .
+
+
 
 Convert mediawiki into cbor
 ---------------------------
 
-make -j3 -k
+setup softlinks and create raw cbor
+
+./make.sh raw
 
 
 Release TREC-CAR data
@@ -16,16 +19,11 @@ Release TREC-CAR data
 # make release-v?.?
 # make spritzer-v?.?
 
-make all.halfwiki.cbor spritzer release
-
+./make.sh all
 
 Upload data to trec-car.cs.unh.edu
 ----------------------------------
 rsync -a *v?.?*zip lava:trec-car/public_html/datareleases
 
 
-
-Test30
--------
-make test30
 

@@ -5,7 +5,7 @@ version=v1.5.1
 all : all.cbor.toc
 
 download :
-	wget -r --no-parent --accept '*-pages-articles[0-9]*.bz2' ${root_url}
+	wget -r --no-parent --accept '*-pages-articles[0-9]*.bz2' ${root_url}/
 
 upload-% : 
 	 rsync -a $* dietz@lava:trec-car/public_html/datareleases/
