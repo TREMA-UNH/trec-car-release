@@ -1,6 +1,6 @@
 bin=~/trec-car/mediawiki-annotate-release/bin
 root_url=http://dumps.wikimedia.your.org/enwiki/20161220
-version=v1.5
+version=v1.5.1
              
 all : all.cbor.toc
 
@@ -32,8 +32,8 @@ all.cbor : $(subst .bz2,.cbor,$(wildcard *.bz2))
 	cat $+ > $@
 
 #### TREC-CAR artifact extraction
-%.cbor.outlines : %.cbor %.cbor.toc
-	${bin}/trec-car-export $<
+# %.cbor.outlines : %.cbor %.cbor.toc unprocessed.train.cbor
+#	${bin}/trec-car-export $< --unproc all.cbor
 
 
 #### Filter
@@ -104,11 +104,11 @@ filtered.%.cbor : %.cbor
 	${bin}/trec-car-transform-content omit.$< -o $@
 
 
-%.cbor.paragraphs : %.cbor %.cbor.toc
-	${bin}/trec-car-export $< -o $*.cbor 
+%.cbor.paragraphs : %.cbor %.cbor.toc unprocessed.train.cbor
+	${bin}/trec-car-export $< -o $*.cbor --unproc all.cbor 
 
-%.cbor.outlines : %.cbor %.cbor.toc
-	${bin}/trec-car-export $< -o $*.cbor
+%.cbor.outlines : %.cbor %.cbor.toc unprocessed.train.cbor
+	${bin}/trec-car-export $< -o $*.cbor --unproc all.cbor
 
 
 
