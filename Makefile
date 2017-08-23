@@ -1,6 +1,8 @@
 bin=~fede/work/projects/LREC/mediawiki-annotate/bin
 root_url=http://dumps.wikimedia.your.org/eswiki/20170720
+embeddings=glove.6B.300d.txt 
 version=v1.6
+
 all : all.cbor.toc
 
 download :
@@ -137,7 +139,7 @@ articles.cbor : all.cbor
 .PRECIOUS: articles.cbor.paragraphs
 
 %.dedup.cbor.duplicates : %.cbor.paragraphs
-	${bin}/trec-car-minhash-duplicates --embeddings glove.6B.300d.txt -t 0.9 --projections 12 -o $@ $< +RTS -N30 -A64M -s -RTS 	
+	${bin}/trec-car-minhash-duplicates --embeddings ${embeddings} -t 0.9 --projections 12 -o $@ $< +RTS -N30 -A64M -s -RTS 	
 
 %.dedup.cbor : %.cbor %.dedup.cbor.duplicates
 	${bin}/trec-car-duplicates-rewrite-table -o $@.duplicates.table -d $@.duplicates
