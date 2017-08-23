@@ -1,11 +1,10 @@
-bin=~/trec-car/mediawiki-annotate-release/bin
-root_url=http://dumps.wikimedia.your.org/enwiki/20161220
-version=v1.5.1
-             
+bin=~fede/work/projects/LREC/mediawiki-annotate/bin
+root_url=http://dumps.wikimedia.your.org/eswiki/20170720
+version=v1.6
 all : all.cbor.toc
 
 download :
-	wget -r --no-parent --accept '*-pages-articles[0-9]*.bz2' ${root_url}
+	wget -r --no-parent --accept '*-pages-articles[0-9]*.bz2' ${root_url}/
 
 upload-% : 
 	 rsync -a $* dietz@lava:trec-car/public_html/datareleases/
