@@ -1,7 +1,10 @@
 bin=~/trec-car/mediawiki-annotate-release/bin
 root_url=http://dumps.wikimedia.your.org/enwiki/20161220
 embeddings=glove.6B.300d.txt 
-version=v1.5.1
+lang=it
+version=v1.6
+dumpdate=20170801
+releasecomment="Multilingual CAR for Italian"
              
 all : all.cbor.toc
 
@@ -14,7 +17,10 @@ upload-% :
 #### Import  
 # Extract pages
 %.cbor : %.bz2
-	bzcat $< | ${bin}/trec-car-import > $@
+	bzcat $< | ${bin}/trec-car-import -j 8 -c config.yaml -D ${dumpdate} -N "${lang}-${version}" -C ${releasecomment} > $@
+
+
+
 
 all.pages : $(subst .bz2,.cbor,$(wildcard *.bz2))
 	echo "all pages"
