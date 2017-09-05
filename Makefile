@@ -1,5 +1,5 @@
 bin=~fede/work/projects/LREC/mediawiki-annotate/bin
-root_url=http://dumps.wikimedia.your.org/eswiki/20170720
+root_url=http://dumps.wikimedia.your.org/enwiki/20170801
 embeddings=glove.6B.300d.txt 
 version=v1.6
 
