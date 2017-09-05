@@ -17,7 +17,7 @@ upload-% :
 #### Import  
 # Extract pages
 %.cbor : %.bz2
-	bzcat $< | ${bin}/trec-car-import -j 8 -c config.yaml -D ${dumpdate} -N "${lang}-${version}" -C ${releasecomment} > $@
+	bzcat $< | ${bin}/trec-car-import -j 8 -c config.${lang}.yaml -D ${dumpdate} -N "${lang}-${version}" -C ${releasecomment} > $@
 
 
 
