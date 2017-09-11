@@ -98,11 +98,11 @@ articlepreds='(!(${prefixMustPreds})  & !is-redirect & !is-disambiguation & !nam
 
 
 transformed.%.cbor : %.cbor
-	${bin}/trec-car-transform-content omit.$< -o $@
+	${bin}/trec-car-transform-content --sections-categories omit.$< -o $@
 
 filtered.%.cbor : %.cbor
 	${bin}/trec-car-filter $< -o omit.$< ${preds}
-	${bin}/trec-car-transform-content omit.$< -o $@
+	${bin}/trec-car-transform-content --full omit.$< -o $@
 
 
 %.cbor.paragraphs : %.cbor %.cbor.toc unprocessed.train.cbor
@@ -153,13 +153,13 @@ processed.articles.cbor : articles.dedup.cbor
 
 train.cbor: processed.articles.cbor
 	${bin}/trec-car-filter $< -o trainomit.$< '(train-set)'
-	${bin}/trec-car-transform-content trainomit.$< -o $@
+	${bin}/trec-car-transform-content --full trainomit.$< -o $@
 	
 
 
 test.cbor: processed.articles.cbor
 	${bin}/trec-car-filter $< -o testomit.$< '(test-set)'
-	${bin}/trec-car-transform-content testomit.$< -o $@
+	${bin}/trec-car-transform-content --full testomit.$< -o $@
 	
 benchmark-train-% : train.cbor
 	${bin}/trec-car-filter train.cbor -o $*/train.$*.cbor '( name-set-from-file "$*.titles.txt" )'
@@ -251,7 +251,7 @@ archive-% : archive-%.tar
 
 
 archive-paragraph.tar.xz : all.cbor README.mkd LICENSE
-	${bin}/trec-car-transform-content all.cbor -o transformed.all.cbor
+	${bin}/trec-car-transform-content --sections-categories all.cbor -o transformed.all.cbor
 	${bin}/trec-car-build-toc pages transformed.all.cbor > transformed.all.cbor.toc
 	${bin}/trec-car-export transformed.all.cbor -o paragraphcorpus.cbor 
 	#tar cJvf paragraphcorpus-${version}.tar.xz paragraphcorpus.cbor.paragraphs README.mkd LICENSE
