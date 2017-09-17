@@ -102,13 +102,15 @@ categoryPreds = category-contains " births" | \
 preds='(!(${prefixMustPreds}) & !(${prefixMaybePreds}) & !is-redirect & !is-disambiguation & !(${categoryPreds}))'
 articlepreds='(!(${prefixMustPreds})  & !is-redirect & !is-disambiguation & !name-has-prefix "Category:")'
 
+forbiddenHeadings=' --forbidden "External Links" --forbidden "Bibliography"'
+
 
 transformed.%.cbor : %.cbor
-	${bin}/trec-car-transform-content --sections-categories omit.$< -o $@
+	${bin}/trec-car-transform-content ${forbiddenHeadings} --sections-categories omit.$< -o $@
 
 filtered.%.cbor : %.cbor
 	${bin}/trec-car-filter $< -o omit.$< ${preds}
-	${bin}/trec-car-transform-content --full omit.$< -o $@
+	${bin}/trec-car-transform-content ${forbiddenHeadings} --full omit.$< -o $@
 
 
 %.cbor.paragraphs : %.cbor %.cbor.toc unprocessed.train.cbor
@@ -136,7 +138,7 @@ halfwiki.cbor : all.cbor
 
 articles.cbor : all.cbor
 	${bin}/trec-car-filter $< -o $@.raw ${articlepreds}	
-	${bin}/trec-car-transform-content $@.raw --sections-categories -o $@ 
+	${bin}/trec-car-transform-content ${forbiddenHeadings} $@.raw --sections-categories -o $@ 
 
 
 .PRECIOUS: %.dedup.cbor.duplicates
@@ -159,13 +161,13 @@ processed.articles.cbor : articles.dedup.cbor
 
 train.cbor: processed.articles.cbor
 	${bin}/trec-car-filter $< -o trainomit.$< '(train-set)'
-	${bin}/trec-car-transform-content --full trainomit.$< -o $@
+	${bin}/trec-car-transform-content ${forbiddenHeadings} --full trainomit.$< -o $@
 	
 
 
 test.cbor: processed.articles.cbor
 	${bin}/trec-car-filter $< -o testomit.$< '(test-set)'
-	${bin}/trec-car-transform-content --full testomit.$< -o $@
+	${bin}/trec-car-transform-content ${forbiddenHeadings} --full testomit.$< -o $@
 	
 benchmark-train-% : train.cbor
 	${bin}/trec-car-filter train.cbor -o $*/train.$*.cbor '( name-set-from-file "$*.titles.txt" )'
