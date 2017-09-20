@@ -1,17 +1,17 @@
 bin=~/trec-car/mediawiki-annotate-release/bin
 root_url=http://dumps.wikimedia.your.org/enwiki/20161220
-embeddings=glove.6B.300d.txt 
+embeddings=glove.6B.300d.txt
 version=v1.5.1
-             
+
 all : all.cbor.toc
 
 download :
 	wget -r --no-parent --accept '*-pages-articles[0-9]*.bz2' ${root_url}/
 
-upload-% : 
+upload-% :
 	 rsync -a $* dietz@lava:trec-car/public_html/datareleases/
-             
-#### Import  
+
+#### Import
 # Extract pages
 %.cbor : %.bz2
 	bzcat $< | ${bin}/trec-car-import > $@
@@ -54,44 +54,44 @@ prefixMustPreds= name-has-prefix "Category talk:" | \
 		name-has-prefix "Help:" | \
 		name-has-prefix "Book:" | \
 		name-has-prefix "TimedText:" | \
-		name-has-prefix "MediaWiki:"  
+		name-has-prefix "MediaWiki:"
 prefixMaybePreds= name-has-prefix "Category:" | \
-                name-has-prefix "Portal:" | \
-                name-has-prefix "List of " | \
-                name-has-prefix "Lists of "
+								name-has-prefix "Portal:" | \
+								name-has-prefix "List of " | \
+								name-has-prefix "Lists of "
 categoryPreds = category-contains " births" | \
-                category-contains "deaths" | \
-                category-contains " people" | \
-                category-contains " event" | \
-                category-contains " novels" | \
-                category-contains " novel series" | \
-                category-contains " books" | \
-                category-contains " fiction" | \
-                category-contains " plays" | \
-                category-contains " films" | \
-                category-contains " awards" | \
-                category-contains " television series" | \
-                category-contains " musicals" | \
-                category-contains " albums" | \
-                category-contains " songs" | \
-                category-contains " singers" | \
-                category-contains " artists" | \
-                category-contains " music groups" | \
-                category-contains " musical groups" | \
-                category-contains " discographies" | \
-                category-contains " concert tours" | \
-                category-contains " albums" | \
-                category-contains " soundtracks" | \
-                category-contains " athletics clubs" | \
-                category-contains "football clubs" | \
-                category-contains " competitions" | \
-                category-contains " leagues" | \
-                category-contains " national register of historic places listings in " | \
-                category-contains " by country" | \
-                category-contains " by year" | \
-                category-contains "years in " | \
-                category-contains "years of the " | \
-                category-contains "lists of " 
+								category-contains "deaths" | \
+								category-contains " people" | \
+								category-contains " event" | \
+								category-contains " novels" | \
+								category-contains " novel series" | \
+								category-contains " books" | \
+								category-contains " fiction" | \
+								category-contains " plays" | \
+								category-contains " films" | \
+								category-contains " awards" | \
+								category-contains " television series" | \
+								category-contains " musicals" | \
+								category-contains " albums" | \
+								category-contains " songs" | \
+								category-contains " singers" | \
+								category-contains " artists" | \
+								category-contains " music groups" | \
+								category-contains " musical groups" | \
+								category-contains " discographies" | \
+								category-contains " concert tours" | \
+								category-contains " albums" | \
+								category-contains " soundtracks" | \
+								category-contains " athletics clubs" | \
+								category-contains "football clubs" | \
+								category-contains " competitions" | \
+								category-contains " leagues" | \
+								category-contains " national register of historic places listings in " | \
+								category-contains " by country" | \
+								category-contains " by year" | \
+								category-contains "years in " | \
+								category-contains "years of the " | \
+								category-contains "lists of "
 
 preds='(!(${prefixMustPreds}) & !(${prefixMaybePreds}) & !is-redirect & !is-disambiguation & !(${categoryPreds}))'
 articlepreds='(!(${prefixMustPreds})  & !is-redirect & !is-disambiguation & !name-has-prefix "Category:")'
@@ -106,7 +106,7 @@ filtered.%.cbor : %.cbor
 
 
 %.cbor.paragraphs : %.cbor %.cbor.toc unprocessed.train.cbor
-	${bin}/trec-car-export $< -o $*.cbor --unproc all.cbor 
+	${bin}/trec-car-export $< -o $*.cbor --unproc all.cbor
 
 %.cbor.outlines : %.cbor %.cbor.toc unprocessed.train.cbor
 	${bin}/trec-car-export $< -o $*.cbor --unproc all.cbor
@@ -114,7 +114,7 @@ filtered.%.cbor : %.cbor
 
 
 .PHONY : README.mkd
-README.mkd : 
+README.mkd :
 	echo "This data set is part of the TREC CAR dataset version ${version}.\nThe included TREC CAR data sets by Laura Dietz, Ben Gamari available at trec-car.cs.unh.edu are provided under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/deed.en_US">Creative Commons Attribution-ShareAlike 3.0 Unported License</a>. The data is based on content extracted from www.Wikipedia.org that is licensed under the Creative Commons Attribution-ShareAlike 3.0 Unported License." > README.mkd
 	echo "" >> README.mkd
 	echo "mediawiki-annotate: $(git -C $bin rev-parse HEAD)" >> README.mkd
@@ -125,12 +125,12 @@ kbpreds='(!(${prefixMustPreds}) & train-set)'
 namespacepreds='(!(${prefixMustPreds}))'
 
 halfwiki.cbor : all.cbor
-	${bin}/trec-car-filter $< -o $@ ${kbpreds}	
+	${bin}/trec-car-filter $< -o $@ ${kbpreds}
 
 
 articles.cbor : all.cbor
-	${bin}/trec-car-filter $< -o $@.raw ${articlepreds}	
-	${bin}/trec-car-transform-content $@.raw --sections-categories -o $@ 
+	${bin}/trec-car-filter $< -o $@.raw ${articlepreds}
+	${bin}/trec-car-transform-content $@.raw --sections-categories -o $@
 
 
 .PRECIOUS: %.dedup.cbor.duplicates
@@ -139,7 +139,7 @@ articles.cbor : all.cbor
 .PRECIOUS: articles.cbor.paragraphs
 
 %.dedup.cbor.duplicates : %.cbor.paragraphs
-	${bin}/trec-car-minhash-duplicates --embeddings ${embeddings} -t 0.9 --projections 12 -o $@ $< +RTS -N30 -A64M -s -RTS 	
+	${bin}/trec-car-minhash-duplicates --embeddings ${embeddings} -t 0.9 --projections 12 -o $@ $< +RTS -N30 -A64M -s -RTS
 
 %.dedup.cbor : %.cbor %.dedup.cbor.duplicates
 	${bin}/trec-car-duplicates-rewrite-table -o $@.duplicates.table -d $@.duplicates
@@ -148,19 +148,19 @@ articles.cbor : all.cbor
 
 
 processed.articles.cbor : articles.dedup.cbor
-	${bin}/trec-car-filter $< -o $@ ${preds}	
+	${bin}/trec-car-filter $< -o $@ ${preds}
 
 
 train.cbor: processed.articles.cbor
 	${bin}/trec-car-filter $< -o trainomit.$< '(train-set)'
 	${bin}/trec-car-transform-content --full trainomit.$< -o $@
-	
+
 
 
 test.cbor: processed.articles.cbor
 	${bin}/trec-car-filter $< -o testomit.$< '(test-set)'
 	${bin}/trec-car-transform-content --full testomit.$< -o $@
-	
+
 benchmark-train-% : train.cbor
 	${bin}/trec-car-filter train.cbor -o $*/train.$*.cbor '( name-set-from-file "$*.titles.txt" )'
 
@@ -170,7 +170,7 @@ benchmark-test-% : test.cbor
 benchmark-% : train.cbor test.cbor
 	${bin}/trec-car-filter train.cbor -o $*/train.$*.cbor '( name-set-from-file "$*/titles.txt" )'
 	${bin}/trec-car-filter test.cbor -o $*/test.$*.cbor '( name-set-from-file "$*/titles.txt" )'
-	
+
 
 %.titles : %.cbor
 	${bin}/trec-car-dump titles $< > $@
@@ -180,7 +180,7 @@ benchmark-% : train.cbor test.cbor
 
 
 
-release-${version}.zip : filtered.all.cbor.paragraphs fold0.train.cbor.outlines fold1.train.cbor.outlines fold2.train.cbor.outlines fold3.train.cbor.outlines fold4.train.cbor.outlines fold0.test.cbor.outlines fold1.test.cbor.outlines fold2.test.cbor.outlines fold3.test.cbor.outlines fold4.test.cbor.outlines README.mkd 
+release-${version}.zip : filtered.all.cbor.paragraphs fold0.train.cbor.outlines fold1.train.cbor.outlines fold2.train.cbor.outlines fold3.train.cbor.outlines fold4.train.cbor.outlines fold0.test.cbor.outlines fold1.test.cbor.outlines fold2.test.cbor.outlines fold3.test.cbor.outlines fold4.test.cbor.outlines README.mkd
 	rm -Rf release-${version}
 	mkdir release-${version}
 	cp fold*train.cbor fold*paragraphs fold*outlines fold*train*qrels README.mkd LICENSE release-${version}
@@ -195,7 +195,7 @@ corpus-${version}.zip : README.mkd LICENSE filtered.all.cbor.paragraphs
 
 
 
-  
+
 #%.tar.xz : % README.mkd LICENSE
 #    tar cJvf $*-${version}.tar.xz $* README.mkd LICENSE
 
@@ -253,7 +253,7 @@ archive-% : archive-%.tar
 archive-paragraph.tar.xz : all.cbor README.mkd LICENSE
 	${bin}/trec-car-transform-content --sections-categories all.cbor -o transformed.all.cbor
 	${bin}/trec-car-build-toc pages transformed.all.cbor > transformed.all.cbor.toc
-	${bin}/trec-car-export transformed.all.cbor -o paragraphcorpus.cbor 
+	${bin}/trec-car-export transformed.all.cbor -o paragraphcorpus.cbor
 	#tar cJvf paragraphcorpus-${version}.tar.xz paragraphcorpus.cbor.paragraphs README.mkd LICENSE
 	tar cvf paragraphcorpus-${version}.tar paragraphcorpus.cbor.paragraphs README.mkd LICENSE
 
@@ -261,17 +261,14 @@ archive-release.tar.xz : train.cbor README.mkd LICENSE
 	# split train into folds
 	# export fold -> outlines, qrels
 	# package everything up
-	
+
 
 
 # .PHONY: release-halfwiki
 # release-halfwiki : all.halfwiki.cbor README.mkd
-# 	tar cJvf halfwiki-${version}.tar.xz all.halfwiki.cbor README.mkd LICENSE
+#		tar cJvf halfwiki-${version}.tar.xz all.halfwiki.cbor README.mkd LICENSE
 
 
-benchmark-% : 
+benchmark-% :
 test200set/all.test200.cbor : all.cbor
 	${bin}/trec-car-filter all.cbor -o test200set/all.test200.cbor '( name-set-from-file "test200set/pagenames200.txt" )'
-
-
-
