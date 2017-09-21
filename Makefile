@@ -1,3 +1,9 @@
+ifeq "${CONFIG}" ""
+$(error "No CONFIG value specified")
+endif
+
+include global-config.mk configs/${CONFIG}
+
 all : all.cbor.toc
 
 download :
