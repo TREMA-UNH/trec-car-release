@@ -32,7 +32,7 @@ function createDir {
 
 function archiveDir {
   dir="$1"
-  rm ${dir}/*toc
+  rm -f ${dir}/*toc
   make archive-${dir}
 }
 
