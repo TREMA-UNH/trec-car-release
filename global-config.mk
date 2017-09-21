@@ -1,2 +1,3 @@
-bin=~/trec-car/mediawiki-annotate-release/bin
-version=v1.5.1
+bin=~/code/trec-car/mediawiki-annotate/bin
+version=v1.6
+dump_date=20170901

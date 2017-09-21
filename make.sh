@@ -12,8 +12,10 @@
 
 bin=~/trec-car/mediawiki-annotate-release/bin
 
+export bin CONFIG
+
 function linkRaw {
-  ln -s ../*bz2 .
+  make mk_dump_links
 }
 
 function rawCbor {
@@ -40,14 +42,13 @@ function archiveDir {
 function unprocessedtrain {
   make halfwiki.cbor
   cp halfwiki.cbor unprocessed.train.cbor
-  make -d unprocessed.train.cbor.outlines
+  make unprocessed.train.cbor.outlines
 
   dir="unprocessedtrain"
 
   createDir $dir
   cp unprocessed.train.cbor* $dir
   archiveDir $dir
-
 }
 
 
