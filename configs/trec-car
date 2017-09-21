@@ -1,2 +1,2 @@
-root_url=http://dumps.wikimedia.your.org/enwiki/20161220
+root_url=http://dumps.wikimedia.your.org/enwiki/20170920
 embeddings=glove.6B.300d.txt
