@@ -17,10 +17,13 @@ show :
 ${out_dir} :
 	mkdir -p $@
 
-download :
+download : dumps/.stamp-${wiki_name}/${dump_date}
+.PHONY : download
+
+dumps/.stamp-${wiki_name}/${dump_date} :
 	mkdir -p dumps
 	wget --directory-prefix=dumps -nd -c -r --no-parent --accept '*-pages-articles[0-9]*.bz2' ${root_url}
-.PHONY : download
+	touch $@
 
 # The file paths of the raw .xml.bz2 files
 dump_files=$(wildcard dumps/${wiki_name}-${dump_date}*.bz2)
