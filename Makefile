@@ -6,14 +6,17 @@ include global-config.mk configs/${CONFIG}
 
 out_dir=output/${product_name}
 
-all : ${out_dir} all.cbor.toc
+all : ${out_dir} ${out_dir}/all.cbor.toc
+
+show :
+	@echo ${${VALUE}}
 
 ${out_dir} :
 	mkdir -p $@
 
 download :
 	mkdir -p dumps
-	#wget --directory-prefix=dumps -nd -c -r --no-parent --accept '*-pages-articles[0-9]*.bz2' ${root_url}
+	wget --directory-prefix=dumps -nd -c -r --no-parent --accept '*-pages-articles[0-9]*.bz2' ${root_url}
 .PHONY : download
 
 # The file paths of the raw .xml.bz2 files
@@ -23,27 +26,26 @@ dump_files=$(wildcard dumps/${wiki_name}-${dump_date}*.bz2)
 dumps=$(basename $(notdir ${dump_files}))
 
 #### Import
-mk_dump_links : download
-	ln -sf ${dump_files} ${out_dir}
+mk_dump_links : ${out_dir} download
+	for i in ${dump_files}; do ln -sf ../../$$i ${out_dir}; done;
 .PHONY : mk_dump_links
 
 # Create raw articles files
-${out_dir}/%.cbor : ${dump_files}
+${out_dir}/%.raw.cbor : dumps/%.bz2
 	bzcat $< | ${bin}/trec-car-import --dump-date=${dump_date} --release-name="${product_name} ${version}" -j8 > $@
 
-# Table of contents
-%.cbor.toc : %.cbor
-	${bin}/trec-car-build-toc pages $< > $@
+${out_dir}/all.cbor : $(addprefix ${out_dir}/,$(addsuffix .raw.cbor,${dumps}))
+	cat $+ > $@
 
+# Table of contents
 %.cbor.paragraphs.toc : ${out_dir}/%.cbor.paragraphs
 	${bin}/trec-car-build-toc paragraphs $< > $@
 
+%.cbor.toc : %.cbor
+	${bin}/trec-car-build-toc pages $< > $@
 
 tocs : $(addprefix ${out_dir}/,$(addsuffix .cbor.toc,${dumps}))
 .PHONY : tocs
-
-${out_dir}/all.cbor : $(addprefix ${out_dir}/,$(addsuffix .cbor,${dumps}))
-	cat $+ > $@
 
 #### TREC-CAR artifact extraction
 # %.cbor.outlines : %.cbor %.cbor.toc unprocessed.train.cbor
@@ -57,12 +59,8 @@ ${out_dir}/all.cbor : $(addprefix ${out_dir}/,$(addsuffix .cbor,${dumps}))
 	${bin}/trec-car-transform-content --full omit.$< -o $@
 
 
-%.cbor.paragraphs : %.cbor %.cbor.toc unprocessed.train.cbor
-	${bin}/trec-car-export $< -o $*.cbor --unproc all.cbor
-
-%.cbor.outlines : %.cbor %.cbor.toc unprocessed.train.cbor
-	${bin}/trec-car-export $< -o $*.cbor --unproc all.cbor
-
+%.cbor.paragraphs %.cbor.outlines : %.cbor %.cbor.toc ${out_dir}/all.cbor
+	${bin}/trec-car-export $< -o $*.cbor --unproc ${out_dir}/all.cbor
 
 
 .PHONY : README.mkd
@@ -90,7 +88,7 @@ ${out_dir}/articles.cbor : ${out_dir}/all.cbor
 .PRECIOUS: all.cbor
 .PRECIOUS: articles.cbor.paragraphs
 
-%.dedup.cbor.duplicates : %.cbor.paragraphs
+${out_dir}/%.dedup.cbor.duplicates : ${out_dir}/%.cbor.paragraphs
 	${bin}/trec-car-minhash-duplicates --embeddings ${embeddings} -t 0.9 --projections 12 -o $@ $< +RTS -N30 -A64M -s -RTS
 
 %.dedup.cbor : %.cbor %.dedup.cbor.duplicates
@@ -104,14 +102,14 @@ ${out_dir}/processed.articles.cbor : ${out_dir}/articles.dedup.cbor
 
 
 ${out_dir}/train.cbor: ${out_dir}/processed.articles.cbor
-	${bin}/trec-car-filter $< -o trainomit.$< '(train-set)'
-	${bin}/trec-car-transform-content --full trainomit.$< -o $@
-	rm trainomit.$<
+	${bin}/trec-car-filter $< -o ${out_dir}/trainomit '(train-set)'
+	${bin}/trec-car-transform-content --full ${out_dir}/trainomit -o $@
+	rm ${out_dir}/trainomit
 
 ${out_dir}/test.cbor: ${out_dir}/processed.articles.cbor
-	${bin}/trec-car-filter $< -o testomit.$< '(test-set)'
-	${bin}/trec-car-transform-content --full testomit.$< -o $@
-	rm testomit.$<
+	${bin}/trec-car-filter $< -o ${out_dir}/testomit '(test-set)'
+	${bin}/trec-car-transform-content --full ${out_dir}/testomit -o $@
+	rm ${out_dir}/testomit
 
 benchmark-train-% : ${out_dir}/train.cbor
 	${bin}/trec-car-filter $< -o ${out_dir}/$*/train.$*.cbor '( name-set-from-file "$*.titles.txt" )'
@@ -119,24 +117,23 @@ benchmark-train-% : ${out_dir}/train.cbor
 benchmark-test-% : ${out_dir}/test.cbor
 	${bin}/trec-car-filter $< -o ${out_dir}/$*/test.$*.cbor '( name-set-from-file "$*.titles.txt" )'
 
-benchmark-% : ${out_dir}/train.cbor ${out_dir}/test.cbor
-	${bin}/trec-car-filter ${out_dir}/train.cbor -o ${out_dir}/$*/train.$*.cbor '( name-set-from-file "$*/titles.txt" )'
-	${bin}/trec-car-filter ${out_dir}/test.cbor -o ${out_dir}/$*/test.$*.cbor '( name-set-from-file "$*/titles.txt" )'
+benchmark-% : benchmark-train-% benchmark-test-%
 
 folds-% : $(foreach $(shell seq 0 4),fold,%.fold${fold}.cbor)
 
+%.fold0.cbor : %.cbor
+	${bin}/trec-car-filter $< -o $@ "fold 0"
+%.fold1.cbor : %.cbor
+	${bin}/trec-car-filter $< -o $@ "fold 1"
+%.fold2.cbor : %.cbor
+	${bin}/trec-car-filter $< -o $@ "fold 2"
+%.fold3.cbor : %.cbor
+	${bin}/trec-car-filter $< -o $@ "fold 3"
+%.fold4.cbor : %.cbor
+	${bin}/trec-car-filter $< -o $@ "fold 4"
+
 %.titles : %.cbor
 	${bin}/trec-car-dump titles $< > $@
-
-archive-%.tar : README.mkd LICENSE
-	cp -f README.mkd $*/
-	cp -f LICENSE $*/
-	tar cvf $*-${version}.tar $*/
-
-%.xz : %
-	xz $<
-
-archive-% : archive-%.tar
 
 upload-% :
 	 rsync -a $* dietz@lava:trec-car/public_html/datareleases/

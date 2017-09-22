@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash -ex
 
 # Needs
 # LICENSE
@@ -13,6 +13,8 @@
 bin=~/trec-car/mediawiki-annotate-release/bin
 
 export bin CONFIG
+out=$(make show VALUE=out_dir)
+version=$(make show VALUE=version)
 
 function linkRaw {
   make mk_dump_links
@@ -24,30 +26,33 @@ function rawCbor {
 
 
 function createDir {
-  dir="$1"
+  local dir="$1"
 
   echo "collect in directory ${dir}"
-  rm -Rf ${dir}
-  mkdir ${dir}
+  #rm -Rf ${dir}
+  mkdir -p ${dir}
 }
 
 
 function archiveDir {
-  dir="$1"
-  rm -f ${dir}/*toc
-  make archive-${dir}
+  local dir="$1"
+  #rm -f ${dir}/*toc
+  pwd
+	cp -f README.mkd $*/
+	cp -f LICENSE $*/
+	tar cvf $*-${version}.tar $*/
 }
 
 
 function unprocessedtrain {
-  make halfwiki.cbor
-  cp halfwiki.cbor unprocessed.train.cbor
-  make unprocessed.train.cbor.outlines
+  make $out/halfwiki.cbor
+  cp $out/halfwiki.cbor $out/unprocessed.train.cbor
+  make $out/unprocessed.train.cbor.outlines
 
-  dir="unprocessedtrain"
+  local dir="unprocessedtrain"
 
   createDir $dir
-  cp unprocessed.train.cbor* $dir
+  cp $out/unprocessed.train.cbor* $dir
   archiveDir $dir
 }
 
@@ -56,13 +61,13 @@ function paragraph {
   echo "collecting files for paragraphcorpus"
 
   #drop name spaces, but preserve everything else
-  make articles.dedup.cbor
-  make articles.dedup.cbor.paragraphs
+  make $out/articles.dedup.cbor
+  make $out/articles.dedup.cbor.paragraphs
 
-  dir="paragraphcorpus"
+  local dir="$out/paragraphcorpus"
   createDir ${dir}
 
-  cp articles.dedup.cbor.paragraphs ${dir}/paragraphcorpus.cbor
+  cp $out/articles.dedup.cbor.paragraphs ${dir}/paragraphcorpus.cbor
 
   archiveDir ${dir}
 }
@@ -70,67 +75,63 @@ function paragraph {
 function trainfolds {
   echo "collecting files for train"
 
-  createDir train
+  createDir $out/train
 
-  make articles.dedup.cbor
-  make train.cbor
+  make $out/articles.dedup.cbor
+  make $out/train.cbor
   for fold in `seq 0 4`; do
     echo "Making fold ${fold}"
-    make train.fold${fold}.cbor
+    make $out/train.fold${fold}.cbor
     # make fold${fold}.train.cbor
     #${bin}/trec-car-filter train.cbor -o fold${fold}.train.cbor "fold ${fold}"
-    make train.fold${fold}.cbor.outlines
-    cp train.fold${fold}.cbor* train
+    make $out/train.fold${fold}.cbor.outlines
+    cp $out/train.fold${fold}.cbor* $out/train
   done
 
-  archiveDir train
+  archiveDir $out/train
 }
 
 
 function benchmarks-train {
-  dir="$1"
-  pagefile="$2"
+  local dir="$1"
+  local pagefile="$2"
 
   echo "Create benchmark ${dir}"
-  createDir $dir
+  createDir ${out}/$dir
 
-  cp -sf ${pagefile} ${dir}.titles.txt
+  ln -sfr ${pagefile} ${dir}.titles.txt
 
   make benchmark-train-${dir}
-  make ${dir}/train.${dir}.cbor.outlines
-  make ${dir}/train.${dir}.titles
+  make ${out}/${dir}/train.${dir}.cbor.outlines
+  make ${out}/${dir}/train.${dir}.titles
 
   for fold in `seq 0 4`; do
     echo "Making fold ${fold}"
-    make ${dir}/train.${dir}.fold${fold}.cbor
+    make ${out}/${dir}/train.${dir}.fold${fold}.cbor
     # make fold${fold}.train.cbor
     #${bin}/trec-car-filter train.cbor -o fold${fold}.train.cbor "fold ${fold}"
-    make ${dir}/train.${dir}.fold${fold}.cbor.outlines
-    make ${dir}/train.${dir}.fold${fold}.titles
-
-  find ${dir}/ -empty -delete
+    make ${out}/${dir}/train.${dir}.fold${fold}.cbor.outlines
+    find ${out}/${dir}/ -empty -delete
+    make ${out}/${dir}/train.${dir}.fold${fold}.titles
   done
 
-
-  archiveDir $dir
+  archiveDir $out/$dir
 }
 
 function benchmarks-test {
-  dir="$1"
-  pagefile="$2"
+  local dir="$1"
+  local pagefile="$2"
 
   echo "Create benchmark ${dir}"
-  createDir $dir
-  cp -sf ${pagefile} ${dir}.titles.txt
+  createDir $out/$dir
+  ln -sfr ${pagefile} ${dir}.titles.txt
 
   make benchmark-test-${dir}
-  make ${dir}/test.${dir}.cbor.outlines
-  make ${dir}/test.${dir}.titles
+  make $out/${dir}/test.${dir}.cbor.outlines
+  find ${out}/${dir}/ -empty -delete
+  make $out/${dir}/test.${dir}.titles
 
-  find ${dir}/ -empty -delete
-
-
-  archiveDir $dir
+  archiveDir $out/$dir
 }
 
 function test200 {
@@ -140,12 +141,12 @@ function benchmarkY1 {
   benchmarks-train benchmarkY1train benchmarkY1.titles
   benchmarks-test benchmarkY1test benchmarkY1.titles
 
-  createDir benchmarkY1test.public
-  cp benchmarkY1test/titles benchmarkY1test.public/
-  cp benchmarkY1test/test.benchmarkY1test.titles benchmarkY1test.public/
-  cp benchmarkY1test/test.benchmarkY1test.cbor.outlines benchmarkY1test.public/
+  createDir $out/benchmarkY1test.public
+  #cp $out/benchmarkY1test/titles $out/benchmarkY1test.public/
+  cp $out/benchmarkY1test/test.benchmarkY1test.titles $out/benchmarkY1test.public/
+  cp $out/benchmarkY1test/test.benchmarkY1test.cbor.outlines $out/benchmarkY1test.public/
 
-  archiveDir benchmarkY1test.public
+  archiveDir $out/benchmarkY1test.public
 }
 
 
@@ -184,7 +185,6 @@ function all {
   echo "making benchmarkY1"
   benchmarkY1
 }
-
 
 
 $@
