@@ -16,6 +16,10 @@ export bin CONFIG
 out=$(make show VALUE=out_dir)
 version=$(make show VALUE=version)
 
+function download {
+  make download
+}
+
 function linkRaw {
   make mk_dump_links
 }
