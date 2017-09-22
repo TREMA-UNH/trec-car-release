@@ -6,6 +6,8 @@ include global-config.mk configs/${CONFIG}
 
 out_dir=output/${product_name}
 
+lang_filter_opts="--lang-index=${lang_index} --from-site=${wiki_name}"
+
 all : ${out_dir} ${out_dir}/all.cbor.toc
 
 show :
@@ -52,11 +54,11 @@ tocs : $(addprefix ${out_dir}/,$(addsuffix .cbor.toc,${dumps}))
 #	${bin}/trec-car-export $< --unproc all.cbor
 
 %.transformed.cbor : %.cbor
-	${bin}/trec-car-transform-content --sections-categories omit.$< -o $@
+	${bin}/trec-car-transform-content ${transformUnproc} omit.$< -o $@
 
 %.filtered.cbor : %.cbor
-	${bin}/trec-car-filter $< -o omit.$< ${preds}
-	${bin}/trec-car-transform-content --full omit.$< -o $@
+	${bin}/trec-car-filter ${lang_filter_opts} $< -o omit.$< ${preds}
+	${bin}/trec-car-transform-content ${transformArticle} omit.$< -o $@
 
 
 %.cbor.paragraphs %.cbor.outlines : %.cbor %.cbor.toc ${out_dir}/all.cbor
@@ -75,12 +77,12 @@ kbpreds='(!(${prefixMustPreds}) & train-set)'
 namespacepreds='(!(${prefixMustPreds}))'
 
 ${out_dir}/halfwiki.cbor : ${out_dir}/all.cbor
-	${bin}/trec-car-filter $< -o $@ ${kbpreds}
+	${bin}/trec-car-filter ${lang_filter_opts} $< -o $@ ${kbpreds}
 
 
 ${out_dir}/articles.cbor : ${out_dir}/all.cbor
-	${bin}/trec-car-filter $< -o $@.raw ${articlepreds}
-	${bin}/trec-car-transform-content $@.raw --sections-categories -o $@
+	${bin}/trec-car-filter ${lang_filter_opts} $< -o $@.raw ${articlepreds}
+	${bin}/trec-car-transform-content $@.raw ${transformUnproc} -o $@
 	rm $@.raw
 
 .PRECIOUS: %.dedup.cbor.duplicates
@@ -98,39 +100,39 @@ ${out_dir}/%.dedup.cbor.duplicates : ${out_dir}/%.cbor.paragraphs
 
 
 ${out_dir}/processed.articles.cbor : ${out_dir}/articles.dedup.cbor
-	${bin}/trec-car-filter $< -o $@ ${preds}
+	${bin}/trec-car-filter ${lang_filter_opts} $< -o $@ ${preds}
 
 
 ${out_dir}/train.cbor: ${out_dir}/processed.articles.cbor
-	${bin}/trec-car-filter $< -o ${out_dir}/trainomit '(train-set)'
-	${bin}/trec-car-transform-content --full ${out_dir}/trainomit -o $@
+	${bin}/trec-car-filter ${lang_filter_opts} $< -o ${out_dir}/trainomit '(train-set)'
+	${bin}/trec-car-transform-content ${out_dir}/trainomit ${transformArticle} -o $@
 	rm ${out_dir}/trainomit
 
 ${out_dir}/test.cbor: ${out_dir}/processed.articles.cbor
-	${bin}/trec-car-filter $< -o ${out_dir}/testomit '(test-set)'
-	${bin}/trec-car-transform-content --full ${out_dir}/testomit -o $@
+	${bin}/trec-car-filter ${lang_filter_opts} $< -o ${out_dir}/testomit '(test-set)'
+	${bin}/trec-car-transform-content ${out_dir}/testomit ${transformArticle} -o $@
 	rm ${out_dir}/testomit
 
 benchmark-train-% : ${out_dir}/train.cbor
-	${bin}/trec-car-filter $< -o ${out_dir}/$*/train.$*.cbor '( name-set-from-file "$*.titles.txt" )'
+	${bin}/trec-car-filter ${lang_filter_opts} $< -o ${out_dir}/$*/train.$*.cbor '( name-set-from-file "$*.titles.txt" )'
 
 benchmark-test-% : ${out_dir}/test.cbor
-	${bin}/trec-car-filter $< -o ${out_dir}/$*/test.$*.cbor '( name-set-from-file "$*.titles.txt" )'
+	${bin}/trec-car-filter ${lang_filter_opts} $< -o ${out_dir}/$*/test.$*.cbor '( name-set-from-file "$*.titles.txt" )'
 
 benchmark-% : benchmark-train-% benchmark-test-%
 
 folds-% : $(foreach $(shell seq 0 4),fold,%.fold${fold}.cbor)
 
 %.fold0.cbor : %.cbor
-	${bin}/trec-car-filter $< -o $@ "fold 0"
+	${bin}/trec-car-filter ${lang_filter_opts} $< -o $@ "fold 0"
 %.fold1.cbor : %.cbor
-	${bin}/trec-car-filter $< -o $@ "fold 1"
+	${bin}/trec-car-filter ${lang_filter_opts} $< -o $@ "fold 1"
 %.fold2.cbor : %.cbor
-	${bin}/trec-car-filter $< -o $@ "fold 2"
+	${bin}/trec-car-filter ${lang_filter_opts} $< -o $@ "fold 2"
 %.fold3.cbor : %.cbor
-	${bin}/trec-car-filter $< -o $@ "fold 3"
+	${bin}/trec-car-filter ${lang_filter_opts} $< -o $@ "fold 3"
 %.fold4.cbor : %.cbor
-	${bin}/trec-car-filter $< -o $@ "fold 4"
+	${bin}/trec-car-filter ${lang_filter_opts} $< -o $@ "fold 4"
 
 %.titles : %.cbor
 	${bin}/trec-car-dump titles $< > $@

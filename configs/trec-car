@@ -4,7 +4,28 @@ product_name=trec-car
 lang=en
 wiki_name=${lang}wiki
 root_url=http://dumps.wikimedia.your.org/${wiki_name}/${dump_date}
-embeddings=glove.6B.300d.txt
+embeddings=glove.6B.50d.txt
+
+forbiddenHeadings= \
+		--forbidden "see also" \
+    --forbidden "references" \
+    --forbidden "external links" \
+    --forbidden "notes" \
+    --forbidden "bibliography" \
+    --forbidden "gallery" \
+    --forbidden "publications" \
+    --forbidden "further reading" \
+    --forbidden "track listing" \
+    --forbidden "sources" \
+    --forbidden "cast" \
+    --forbidden "discography" \
+    --forbidden "awards" \
+    --forbidden "other" \
+    --forbidden "external links and references" \
+    --forbidden "notes and references"
+
+transformUnproc=--lead --image --shortHeading --longHeading --shortpage ${forbidden}
+transformArticle=${forbidden}
 
 #### Filter
 prefixMustPreds= \
