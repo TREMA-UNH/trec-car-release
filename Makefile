@@ -69,13 +69,11 @@ tocs : $(addprefix ${out_dir}/,$(addsuffix .cbor.toc,${dumps}))
 	${bin}/trec-car-export $< -o $*.cbor --unproc ${out_dir}/all.cbor
 
 
-.PHONY : README.mkd
 README.mkd :
-	echo "This data set is part of the TREC CAR dataset version ${version}.\nThe included TREC CAR data sets by Laura Dietz, Ben Gamari available at trec-car.cs.unh.edu are provided under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/deed.en_US">Creative Commons Attribution-ShareAlike 3.0 Unported License</a>. The data is based on content extracted from www.Wikipedia.org that is licensed under the Creative Commons Attribution-ShareAlike 3.0 Unported License." > README.mkd
-	echo "" >> README.mkd
-	echo "mediawiki-annotate: $(git -C $bin rev-parse HEAD)" >> README.mkd
-	echo "build system: $(git -C . rev-parse HEAD)" >> README.mkd
-
+        echo "This data set is part of the TREC CAR dataset version ${version}.\nThe included TREC CAR data sets by Laura Dietz, Ben Gamari available at trec-car.cs.unh.edu are provided under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/deed.en_US">Creative Commons Attribution-ShareAlike 3.0 Unported License</a>. The data is based on content extracted from www.Wikipedia.org that is licensed under the Creative Commons Attribution-ShareAlike 3.0 Unported License." > README.mkd                                                                                                                                                                               echo "" >> README.mkd
+        echo "mediawiki-annotate: `git -C ${bin} rev-parse HEAD)` in git repos `git -C ${bin} remote get-url origin`  " >> README.mkd
+        echo "build system: `git -C . rev-parse HEAD)` in git repos `git -C . remote get-url origin`" >> README.mkd                                                                                                                                                                                                                             
+	
 
 kbpreds='(!(${prefixMustPreds}) & train-set)'
 namespacepreds='(!(${prefixMustPreds}))'
