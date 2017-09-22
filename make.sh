@@ -10,7 +10,13 @@
 # all.cbor
 #
 
-bin=~/trec-car/mediawiki-annotate-release/bin
+if [ -f ./.local-config ]; then
+  source .local-config
+fi
+
+if [ -z "$bin" ]; then
+  bin=~/trec-car/mediawiki-annotate-release/bin
+fi
 
 export bin CONFIG
 out=$(make show VALUE=out_dir)
