@@ -2,11 +2,12 @@ ifeq "${CONFIG}" ""
 $(error "No CONFIG value specified")
 endif
 
-include global-config.mk configs/${CONFIG}
+include global-config.mk
+include configs/${CONFIG}
 
 out_dir=output/${product_name}
 
-lang_filter_opts="--lang-index=${lang_index} --from-site=${wiki_name}"
+lang_filter_opts=--lang-index=${lang_index} --from-site=${wiki_name}
 
 all : ${out_dir} ${out_dir}/all.cbor.toc
 

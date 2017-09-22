@@ -5,6 +5,7 @@ lang=en
 wiki_name=${lang}wiki
 root_url=http://dumps.wikimedia.your.org/${wiki_name}/${dump_date}
 embeddings=glove.6B.50d.txt
+lang_index=hi
 
 forbiddenHeadings= \
 		--forbidden "see also" \
