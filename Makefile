@@ -34,7 +34,7 @@ mk_dump_links : ${out_dir} download
 
 # Create raw articles files
 ${out_dir}/%.raw.cbor : dumps/%.bz2
-	bzcat $< | ${bin}/trec-car-import --dump-date=${dump_date} --release-name="${product_name} ${version}" -j8 > $@
+	bzcat $< | ${bin}/trec-car-import -c config.${lang}.yaml --dump-date=${dump_date} --release-name="${product_name} ${version}" -j8 > $@
 
 ${out_dir}/all.cbor : $(addprefix ${out_dir}/,$(addsuffix .raw.cbor,${dumps}))
 	cat $+ > $@
