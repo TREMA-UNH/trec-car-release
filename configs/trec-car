@@ -4,8 +4,8 @@ product_name=trec-car
 lang=en
 wiki_name=${lang}wiki
 root_url=http://dumps.wikimedia.your.org/${wiki_name}/${dump_date}
+import_config=config.${lang}.yaml
 embeddings=glove.6B.50d.txt
-lang_index=hi
 
 forbiddenHeadings= \
 		--forbidden "see also" \
