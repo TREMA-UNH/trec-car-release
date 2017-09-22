@@ -93,23 +93,43 @@ categoryPreds = category-contains " births" | \
                 category-contains "years of the " | \
                 category-contains "lists of " 
 
+
+
+forbidden=--forbidden "see also" \
+          --forbidden "references" \
+          --forbidden "external links" \
+          --forbidden "notes" \
+          --forbidden "bibliography" \
+	  --forbidden "gallery" \
+	  --forbidden "publications" \
+          --forbidden "further reading" \
+	  --forbidden "track listing" \
+	  --forbidden "sources" \
+          --forbidden "cast" \
+	  --forbidden "discography" \
+	  --forbidden "awards" \
+	  --forbidden "other" \
+	  --forbidden "external links and references" \
+  	  --forbidden "notes and references"
+
+transformUnproc=--lead --image --shortHeading --longHeading --shortpage ${forbidden}
+transformArticle=${forbidden}
+
 preds='(!(${prefixMustPreds}) & !(${prefixMaybePreds}) & !is-redirect & !is-disambiguation & !(${categoryPreds}))'
 articlepreds='(!(${prefixMustPreds})  & !is-redirect & !is-disambiguation & !name-has-prefix "Category:")'
 
 
 transformed.%.cbor : %.cbor
-	${bin}/trec-car-transform-content --sections-categories omit.$< -o $@
+	${bin}/trec-car-transform-content ${transformUnproc} omit.$< -o $@
 
 filtered.%.cbor : %.cbor
 	${bin}/trec-car-filter $< -o omit.$< ${preds}
-	${bin}/trec-car-transform-content --full omit.$< -o $@
+	${bin}/trec-car-transform-content ${transformArticle} omit.$< -o $@
 
 
-%.cbor.paragraphs : %.cbor %.cbor.toc unprocessed.train.cbor
+%.cbor.paragraphs %.cbor.outlines : %.cbor %.cbor.toc all.cbor
 	${bin}/trec-car-export $< -o $*.cbor --unproc all.cbor 
 
-%.cbor.outlines : %.cbor %.cbor.toc unprocessed.train.cbor
-	${bin}/trec-car-export $< -o $*.cbor --unproc all.cbor
 
 
 
@@ -130,7 +150,7 @@ halfwiki.cbor : all.cbor
 
 articles.cbor : all.cbor
 	${bin}/trec-car-filter $< -o $@.raw ${articlepreds}	
-	${bin}/trec-car-transform-content $@.raw --sections-categories -o $@ 
+	${bin}/trec-car-transform-content $@.raw ${transformUnproc} -o $@ 
 
 
 .PRECIOUS: %.dedup.cbor.duplicates
@@ -153,13 +173,13 @@ processed.articles.cbor : articles.dedup.cbor
 
 train.cbor: processed.articles.cbor
 	${bin}/trec-car-filter $< -o trainomit.$< '(train-set)'
-	${bin}/trec-car-transform-content --full trainomit.$< -o $@
+	${bin}/trec-car-transform-content ${transformArticle} trainomit.$< -o $@
 	
 
 
 test.cbor: processed.articles.cbor
 	${bin}/trec-car-filter $< -o testomit.$< '(test-set)'
-	${bin}/trec-car-transform-content --full testomit.$< -o $@
+	${bin}/trec-car-transform-content -${transformArticle} testomit.$< -o $@
 	
 benchmark-train-% : train.cbor
 	${bin}/trec-car-filter train.cbor -o $*/train.$*.cbor '( name-set-from-file "$*.titles.txt" )'
@@ -180,56 +200,17 @@ benchmark-% : train.cbor test.cbor
 
 
 
-release-${version}.zip : filtered.all.cbor.paragraphs fold0.train.cbor.outlines fold1.train.cbor.outlines fold2.train.cbor.outlines fold3.train.cbor.outlines fold4.train.cbor.outlines fold0.test.cbor.outlines fold1.test.cbor.outlines fold2.test.cbor.outlines fold3.test.cbor.outlines fold4.test.cbor.outlines README.mkd 
-	rm -Rf release-${version}
-	mkdir release-${version}
-	cp fold*train.cbor fold*paragraphs fold*outlines fold*train*qrels README.mkd LICENSE release-${version}
-	zip release-${version}.zip release-${version}/*
-
-corpus-${version}.zip : README.mkd LICENSE filtered.all.cbor.paragraphs
-	rm -Rf corpus-${version}
-	mkdir corpus-${version}
-	cp -f filtered.all.cbor.paragraphs corpus-${version}/release-${version}.paragraphs
-	cp README.mkd LICENSE corpus-${version}/
-	zip corpus-${version}.zip corpus-${version}/*
-
-
-
-  
-#%.tar.xz : % README.mkd LICENSE
-#    tar cJvf $*-${version}.tar.xz $* README.mkd LICENSE
 
 %.titles.zip : %
 	${bin}/trec-car-dump titles $< | zip >| $@
 
-archive-%.tar.xz : % %.outlines %.titles.zip README.mkd LICENSE
-	tar cJvf $*-${version}.tar.xz $< $*.*.qrels
 
 
-# archive-halfwiki.all.cbor
-
-#make archive-halfwiki.cbor.tar.xz
-#make archive-filtered.halfwiki.cbor.tar.xz
-
-# filtered.%.cbor : %.cbor
-#make filtered.all.cbor
-#make filtered.halfwiki.cbor
-
-#make filtered.all.cbor.paragraphs
-
-
-archive-%.tar : README.mkd LICENSE
+archive-% : README.mkd LICENSE
 	cp -f README.mkd $*/
 	cp -f LICENSE $*/
 	tar cvf $*-${version}.tar $*/
 
-archive-%.tar.xz : README.mkd LICENSE
-	cp -f README.mkd $*/
-	cp -f LICENSE $*/
-	tar cJvf $*-${version}.tar.xz $*/
-
-archive-% : archive-%.tar
-	# done
 
 
 %.fold0.cbor : %.cbor
@@ -250,23 +231,7 @@ archive-% : archive-%.tar
 
 
 
-archive-paragraph.tar.xz : all.cbor README.mkd LICENSE
-	${bin}/trec-car-transform-content --sections-categories all.cbor -o transformed.all.cbor
-	${bin}/trec-car-build-toc pages transformed.all.cbor > transformed.all.cbor.toc
-	${bin}/trec-car-export transformed.all.cbor -o paragraphcorpus.cbor 
-	#tar cJvf paragraphcorpus-${version}.tar.xz paragraphcorpus.cbor.paragraphs README.mkd LICENSE
-	tar cvf paragraphcorpus-${version}.tar paragraphcorpus.cbor.paragraphs README.mkd LICENSE
 
-archive-release.tar.xz : train.cbor README.mkd LICENSE
-	# split train into folds
-	# export fold -> outlines, qrels
-	# package everything up
-	
-
-
-# .PHONY: release-halfwiki
-# release-halfwiki : all.halfwiki.cbor README.mkd
-# 	tar cJvf halfwiki-${version}.tar.xz all.halfwiki.cbor README.mkd LICENSE
 
 
 benchmark-% : 
