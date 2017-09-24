@@ -41,7 +41,7 @@ ${out_dir}/%.raw.cbor : dumps/%.bz2
 	bzcat $< | ${bin}/trec-car-import -c ${import_config} --dump-date=${dump_date} --release-name="${product_name} ${version}" -j8 > $@
 
 ${out_dir}/all.cbor : $(addprefix ${out_dir}/,$(addsuffix .raw.cbor,${dumps}))
-	cat $+ > $@
+	${bin}/trec-car-cat -o $@ $+
 
 # Table of contents
 %.cbor.paragraphs.toc : ${out_dir}/%.cbor.paragraphs
