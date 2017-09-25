@@ -263,6 +263,9 @@ archive-release.tar.xz : train.cbor README.mkd LICENSE
 	# package everything up
 	
 
+%.tar.xz : % README.mkd LICENSE
+	tar Jcvf $@ $+
+
 
 # .PHONY: release-halfwiki
 # release-halfwiki : all.halfwiki.cbor README.mkd
