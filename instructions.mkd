@@ -1,25 +1,49 @@
 Create new release directory
 ----------------------------
 
-git clone git@github.com:TREMA-UNH/trec-car-release.git release-v?.?
-cd release-v?.?
+```
+ver=1.6
+git clone git@github.com:TREMA-UNH/trec-car-release.git release-v$ver
+cd release-v$ver
+```
 
+Configure
+---------
+
+Edit `global-config.mk` to reflect path to `mediawiki-annotate` tools and
+version number of release.
+
+Set default configuration,
+```
+export CONFIG=trec-car
+```
+
+Download dumps
+--------------
+
+Edit `configs/$CONFIG`, adjust `root_url` to point to desired dump,
+```
+make download
+```
 
 
 Convert mediawiki into cbor
 ---------------------------
 
 setup softlinks and create raw cbor
-
+```
 ./make.sh raw
-
+```
 
 Release TREC-CAR data
 ---------------------
+
+```
 # make release-v?.?
 # make spritzer-v?.?
 
 ./make.sh all
+```
 
 Upload data to trec-car.cs.unh.edu
 ----------------------------------

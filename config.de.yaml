@@ -1,0 +1,86 @@
+templateResolutions:
+  lang: "{{#1}}" # Q6610935
+  linktext: "{{#0}}" # Q13422707
+  small: "{{#0}}"  # Q5411092
+  smaller: "{{#0}}"  # Q15711916
+  midsize: "{{#0}}" # Q20783112
+  larger: "{{#0}}" # Q10984380
+  big: "{{#0}}"          # Q6953348
+  large: "{{#0}}"        # Q8091126
+  huge: "{{#0}}"         # Q6810626
+  resize: "{{#0}}"       # Q6196326
+
+  # google smallcaps in wikidata, find code, convert words
+  smallcaps: "{{#0}}" #Q6157820
+  sc1: "{{#0}}" #Q8102395
+  smallcaps2: "{{#0}}"  #Q25001280
+  sc2: "{{#0}}"  #Q8102380
+  sc: "{{#0}}" #Q8102458
+  allcaps: "{{#0}}" #Q6028029
+  caps: "{{#0}}" 
+  nocaps: "{{#0}}" #Q6812396
+
+  parang: "⟨{{#0}}⟩" #Q15206101
+  Graphem: "⟨{{#0}}⟩" #Q15206101
+
+  cquote: "{{#0}}" #Q6867400
+  quotation: "{{#0}}" #Q5618537
+  Zitation: "{{#0}}" #Q5618537
+  visible anchor: "{{#0}}" #Q8029664
+  format price: "{{#0}}" #Q10584661
+  mvar: "{{#0}}" #Q12471284
+  nowrap: "{{#0}}"  #Q5412454
+  ordinal to word: "{{#0}}" #Q18754283
+  number to word: "{{#0}}"  #Q14442364
+  cardinal to word: "{{#0}}" #Q27062060
+  linktext: "{{#0}}"  #Q13422707
+  
+
+  transl: "{{#1}}" #Q6029416
+  rtl-lang: "{{#1}}"  #Q5893614
+  lang: "{{#1}}" #Q6610935
+
+  citation needed: ""    #Q5312535
+  respell: ""  #Q12186112
+  ref: "" #Q5613953
+  note: "" #Q5613953
+  refn: "" #Q17488269
+  r: "" #Q5664055ù
+  zh: "" #Q5627529
+  sfn: "" #Q6535844
+
+  # approximations of complicated templates
+  as of: "as of {{#0}} {{#1}} {{#2}}" #Q6687825
+  time ago: "on {{#0}}" #Q5625682
+  inflation: "{{#1}}" #Q10584741
+  convert: "{{#0}} {{#1}}" #Q6271187
+  Einheitenumrechnung: "{{#0}} {{#1}}" #Q6271187
+  cvt:  "{{#0}} {{#1}}" #Q7745456
+  
+  # synonyms for lists keep them and then add
+  blist: "&list" #Q6708366
+  bulleted list:  "&list" #Q16746551
+  blist:  "&list" #Q6708366
+  bulleted: "&list" #Q16746551
+  ulist:  "&list"
+  unordered list:  "&list" #Q16746551
+  unbulleted list:  "&list" #Q15138141
+  ubl: "&list" #Q7003448
+  ubt:  "&list" #Q4001814
+  ublist:  "&list" #Q7003448
+  unbullet:  "&list"
+  plainlist:  "&list" #Q6157836
+  ordered list:  "&list" #Q7100711
+  hlist:  "&list" #Q10553143
+  flatlist:  "&list" #Q5622429
+
+  # date  Q6076642
+disambiguationTemplates: # Q6148868
+# keep these and add for each language
+  - disambig
+  - disambiguation
+  - dab
+  - Begriffsklärung
+   - disambiguation/de
+   
+  # look up language specific template in https://www.wikidata.org/wiki/Q6148868
