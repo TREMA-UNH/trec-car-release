@@ -69,11 +69,12 @@ tocs : $(addprefix ${out_dir}/,$(addsuffix .cbor.toc,${dumps}))
 	${bin}/trec-car-export $< -o $*.cbor --unproc ${out_dir}/all.cbor
 
 
-README.mkd :
-	echo "This data set is part of the TREC CAR dataset version ${version}.\nThe included TREC CAR data sets by Laura Dietz, Ben Gamari available at trec-car.cs.unh.edu are provided under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/deed.en_US">Creative Commons Attribution-ShareAlike 3.0 Unported License</a>. The data is based on content extracted from www.Wikipedia.org that is licensed under the Creative Commons Attribution-ShareAlike 3.0 Unported License." > README.mkd                                                                                                                                                                               echo "" >> README.mkd
-	echo "mediawiki-annotate: `git -C ${bin} rev-parse HEAD)` in git repos `git -C ${bin} remote get-url origin`  " >> README.mkd
-	echo "build system: `git -C . rev-parse HEAD)` in git repos `git -C . remote get-url origin`" >> README.mkd                                                                                                                                                                                                                             
-	
+%/README.mkd :
+	echo "This data set is part of the TREC CAR dataset version ${version}.\nThe included TREC CAR data sets by Laura Dietz, Ben Gamari available at trec-car.cs.unh.edu are provided under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/deed.en_US">Creative Commons Attribution-ShareAlike 3.0 Unported License</a>. The data is based on content extracted from www.Wikipedia.org that is licensed under the Creative Commons Attribution-ShareAlike 3.0 Unported License." > $@
+	echo "" >> $@
+	echo "mediawiki-annotate: `git -C ${bin} rev-parse HEAD)` in git repos `git -C ${bin} remote get-url origin`  " >> $@
+	echo "build system: `git -C . rev-parse HEAD)` in git repos `git -C . remote get-url origin`" >> $@
+
 
 kbpreds='(!(${prefixMustPreds}) & train-set)'
 namespacepreds='(!(${prefixMustPreds}))'
@@ -136,15 +137,15 @@ folds-% : $(foreach $(shell seq 0 4),fold,%.fold${fold}.cbor)
 %.fold4.cbor : %.cbor
 	${bin}/trec-car-filter ${lang_filter_opts} $< -o $@ "fold 4"
 
-%.tar.xz : % README.mkd LICENSE
-	tar Jcvf $@ $+
+%.tar.xz : % %/README.mkd %/LICENSE
+	tar Jcvf $@ $<
 
 %.titles : %.cbor
 	${bin}/trec-car-dump titles $< > $@
 
 
 # Package a single file with license info
-package-% : % README.mkd LICENSE
+package-% : % %/README.mkd %/LICENSE
 	tar cvf $*.tar $+
 
 
