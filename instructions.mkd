@@ -16,7 +16,10 @@ version number of release.  --- FixMe: the config file does not include path to 
 Set default configuration,
 ```
 export CONFIG=trec-car
+export bin=$path_to_mediawikiannotate_executables
 ```
+
+
 
 Download dumps
 --------------
@@ -45,6 +48,9 @@ setup softlinks and create raw cbor
 ```
 ./make.sh raw
 ```
+
+creates links from `./dumps/*` to `${outdir}/*`
+then converts `*bz2` to `*cbor`
 
 -- FixMe: what is the expectation after `make.sh raw` ?
 
