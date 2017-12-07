@@ -1,5 +1,5 @@
 version=v1.6
-dump_date=20170901
+dump_date=20161220
 lang_index=lang-index
 
 #### Filter

@@ -11,7 +11,7 @@ Configure
 ---------
 
 Edit `global-config.mk` to reflect path to `mediawiki-annotate` tools and
-version number of release.
+version number of release.  --- FixMe: the config file does not include path to mediawiki-annotate tools
 
 Set default configuration,
 ```
@@ -21,9 +21,20 @@ export CONFIG=trec-car
 Download dumps
 --------------
 
-Edit `configs/$CONFIG`, adjust `root_url` to point to desired dump,
+Edit `configs/$CONFIG`, adjust `root_url` to point to desired dump,  
 ```
 make download
+```
+
+Alternatively, if `*.bz2` files are available in parent directory, call 
+```
+make fakedownload
+```
+
+
+As a third alternative, create a subdirectory called `./dumps/`, place `*.bz2` files in it, and create this file
+```
+touch dumps/.stamp-${wiki_name}/${dump_date} 
 ```
 
 
@@ -34,6 +45,8 @@ setup softlinks and create raw cbor
 ```
 ./make.sh raw
 ```
+
+-- FixMe: what is the expectation after `make.sh raw` ?
 
 Release TREC-CAR data
 ---------------------

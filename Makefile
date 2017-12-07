@@ -25,6 +25,13 @@ dumps/.stamp-${wiki_name}/${dump_date} :
 	wget --directory-prefix=dumps -nd -c -r --no-parent --accept '*-pages-articles[0-9]*.bz2' ${root_url}
 	touch $@
 
+fakedownload :
+	mkdir -p dumps/.stamp-${wiki_name}/
+	ln -s -t dumps  `pwd`/../*bz2 
+	echo "add *bz2 in ./dumps/"	
+	touch dumps/.stamp-${wiki_name}/${dump_date}
+
+
 # The file paths of the raw .xml.bz2 files
 dump_files=$(wildcard dumps/${wiki_name}-${dump_date}*.bz2)
 # The basenames of the dump files.
