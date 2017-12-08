@@ -140,16 +140,13 @@ in rec {
   embedding = "${glove}/glove.6B.50d.txt";
 
   # -1. Inter-site page title index
-  wikiDataDump =
-    builtins.fetchurl {
-      url = http://dumps.wikimedia.your.org/wikidatawiki/entities/20171204/wikidata-20171204-all.json.bz2;
-    };
-
   langIndex = ./lang-index;
 
   langIndex2 = wikiDataDump: mkDerivation {
     name = "lang-index";
-    buildInputs = [wikiDataDump];
+    src = builtins.fetchurl {
+      url = http://dumps.wikimedia.your.org/wikidatawiki/entities/20171204/wikidata-20171204-all.json.bz2;
+    };
     buildCommand = ''
       mkdir $out
       cd $out
