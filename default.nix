@@ -140,9 +140,10 @@ in rec {
   embedding = "${glove}/glove.6B.50d.txt";
 
   # -1. Inter-site page title index
-  langIndex = ./lang-index;
+  #langIndex = ./lang-index;
+  langIndex = langIndex2;
 
-  langIndex2 = wikiDataDump: mkDerivation {
+  langIndex2 = mkDerivation {
     name = "lang-index";
     src = builtins.fetchurl {
       url = http://dumps.wikimedia.your.org/wikidatawiki/entities/20171204/wikidata-20171204-all.json.bz2;
@@ -150,7 +151,7 @@ in rec {
     buildCommand = ''
       mkdir $out
       cd $out
-      ${bin}/multilang-car-index < ${wikiDataDump}/dump.json
+      bzcat $src | ${bin}/multilang-car-index
       mv out lang-index.cbor
     '';
   };
