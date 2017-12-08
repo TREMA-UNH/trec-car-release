@@ -5,7 +5,6 @@ let
     wiki_name = "${lang}wiki";
     root_url = "http://dumps.wikimedia.your.org/${wiki_name}/${globalConfig.dump_date}";
     import_config = ./config.en.yaml;
-    embeddings = ./glove.6B.50d.txt;
 
     forbiddenHeadings = ''
       --forbidden "see also"
@@ -132,11 +131,18 @@ in rec {
     '';
   };
 
+  # GloVe embeddings
+  glove = mkDerivation {
+    src = builtins.fetchurl {
+      url = http://nlp.stanford.edu/data/glove.6B.zip;
+    };
+  };
+  embedding = "${glove}/glove.6B.50d.txt";
+
   # -1. Inter-site page title index
   wikiDataDump =
-    pkgs.fetchurl {
+    builtins.fetchurl {
       url = http://dumps.wikimedia.your.org/wikidatawiki/entities/20171204/wikidata-20171204-all.json.bz2;
-      md5 = "";
     };
 
   langIndex = ./lang-index;
@@ -210,7 +216,7 @@ in rec {
     buildInputs = [allParagraphs];
     buildCommand = ''
       mkdir $out
-	    ${bin}/trec-car-minhash-duplicates --embeddings ${config.embeddings} -t 0.9 --projections 12 -o $out/duplicates ${allParagraphs}/pages.paragraphs.cbor +RTS -N30 -A64M -s -RTS
+	    ${bin}/trec-car-minhash-duplicates --embeddings ${embedding} -t 0.9 --projections 12 -o $out/duplicates ${allParagraphs}/pages.paragraphs.cbor +RTS -N30 -A64M -s -RTS
     '';
   };
 
@@ -269,7 +275,16 @@ in rec {
     buildCommand =
       let
         contents = ''
-          This data set is part of the TREC CAR dataset version ${globalConfig.version}.\nThe included TREC CAR data sets by Laura Dietz, Ben Gamari available at trec-car.cs.unh.edu are provided under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/deed.en_US">Creative Commons Attribution-ShareAlike 3.0 Unported License</a>. The data is based on content extracted from www.Wikipedia.org that is licensed under the Creative Commons Attribution-ShareAlike 3.0 Unported License.
+          This data set is part of the TREC CAR dataset version ${globalConfig.version}.
+
+          The included TREC CAR data sets by Laura Dietz, Ben Gamari available
+          at trec-car.cs.unh.edu are provided under a <a rel="license"
+          href="http://creativecommons.org/licenses/by-sa/3.0/deed.en_US">Creative
+          Commons Attribution-ShareAlike 3.0 Unported License</a>. The data is
+          based on content extracted from www.Wikipedia.org that is licensed
+          under the Creative Commons Attribution-ShareAlike 3.0 Unported
+          License.
+
           mediawiki-annotate: `git -C ${bin} rev-parse HEAD)` in git repos `git -C ${bin} remote get-url origin`
           build system: `git -C . rev-parse HEAD)` in git repos `git -C . remote get-url origin`
         '';
