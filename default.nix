@@ -163,7 +163,7 @@ in rec {
         name = "rawPagesSingle";
         buildCommand = ''
           mkdir $out
-          bzcat ${dumpFile} | ${bin}/trec-car-import -c ${builtins.toPath config.import_config} --dump-date=${globalConfig.dump_date} --release-name="${config.productName} ${globalConfig.version}" -j8 > $out/pages.cbor
+          bzcat ${dumpFile} | ${bin}/trec-car-import -c ${builtins.toPath config.import_config} --dump-date=${globalConfig.dump_date} --release-name="${config.productName} ${globalConfig.version}" -j$CORES > $out/pages.cbor
         '';
       };
 
