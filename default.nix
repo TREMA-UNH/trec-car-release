@@ -6,24 +6,24 @@ let
     root_url = "http://dumps.wikimedia.your.org/${wiki_name}/${globalConfig.dump_date}";
     import_config = ./config.en.yaml;
 
-    forbiddenHeadings = ''
-      --forbidden "see also"
-      --forbidden "references"
-      --forbidden "external links"
-      --forbidden "notes"
-      --forbidden "bibliography"
-      --forbidden "gallery"
-      --forbidden "publications"
-      --forbidden "further reading"
-      --forbidden "track listing"
-      --forbidden "sources"
-      --forbidden "cast"
-      --forbidden "discography"
-      --forbidden "awards"
-      --forbidden "other"
-      --forbidden "external links and references"
-      --forbidden "notes and references"
-    '';
+    forbiddenHeadings = pkgs.lib.concatMapStringsSep " " (s: "--forbidden '${s}'") [
+      "see also"
+      "references"
+      "external links"
+      "notes"
+      "bibliography"
+      "gallery"
+      "publications"
+      "further reading"
+      "track listing"
+      "sources"
+      "cast"
+      "discography"
+      "awards"
+      "other"
+      "external links and references"
+      "notes and references"
+    ];
 
     transformArticle = "${forbiddenHeadings}";
   };
@@ -95,7 +95,7 @@ let
   };
 
   out_dir = "output/${config.productName}";
-  bin = "/home/ben/code/trec-car/mediawiki-annotate/bin";
+  bin = "/home/ben/trec-car/mediawiki-annotate/bin";
 
   pkgs = import <nixpkgs> { };
   inherit (pkgs.stdenv) mkDerivation;
@@ -133,16 +133,37 @@ in rec {
 
   # GloVe embeddings
   glove = mkDerivation {
-    src = builtins.fetchurl {
+    name = "gloVe";
+    nativeBuildInputs = [pkgs.unzip pkgs.python3];
+    src = pkgs.fetchurl {
+      name = "glove.zip";
       url = http://nlp.stanford.edu/data/glove.6B.zip;
+      sha256 = null;
     };
+    buildCommand = let encodingFix = builtins.toFile "fix.py" ''
+      import sys
+      for i, line in enumerate(sys.stdin.buffer):
+          try:
+              sys.stdout.buffer.write(bytes(str(line, 'utf-8'), 'utf-8'))
+          except UnicodeDecodeError:
+              sys.stderr.buffer.write('Invalid codepoint on line %d' % i)
+    '';
+    in ''
+      unzip $src
+      ls -la
+      mkdir $out
+      # HACK
+      python3 ${encodingFix} < glove.6B.50d.txt > $out/glove.6B.50d.txt
+      #mv * $out
+    '';
   };
   embedding = "${glove}/glove.6B.50d.txt";
 
   # -1. Inter-site page title index
-  langIndex = ./lang-index;
+  #langIndex = ./lang-index;
+  langIndex = langIndex2;
 
-  langIndex2 = wikiDataDump: mkDerivation {
+  langIndex2 = mkDerivation {
     name = "lang-index";
     src = builtins.fetchurl {
       url = http://dumps.wikimedia.your.org/wikidatawiki/entities/20171204/wikidata-20171204-all.json.bz2;
@@ -150,7 +171,7 @@ in rec {
     buildCommand = ''
       mkdir $out
       cd $out
-      ${bin}/multilang-car-index < ${wikiDataDump}/dump.json
+      bzcat $src | ${bin}/multilang-car-index
       mv out lang-index.cbor
     '';
   };
@@ -201,11 +222,12 @@ in rec {
       name = "proc.articles.cbor";
       buildInputs = [articles];
       buildCommand = ''
+        mkdir $out
         ${bin}/trec-car-transform-content ${articles}/pages.cbor -o $out/pages.cbor ${transformUnproc}
       '';
     };
 
-  allParagraphs = export processedArticles;
+  allParagraphs = export "all-paragraphs" processedArticles;
 
   # 3. Drop duplicate paragraphs
   duplicateMapping = mkDerivation {
@@ -213,7 +235,8 @@ in rec {
     buildInputs = [allParagraphs];
     buildCommand = ''
       mkdir $out
-	    ${bin}/trec-car-minhash-duplicates --embeddings ${embedding} -t 0.9 --projections 12 -o $out/duplicates ${allParagraphs}/pages.paragraphs.cbor +RTS -N30 -A64M -s -RTS
+      export LANG=en_US.UTF-8
+	    ${bin}/trec-car-minhash-duplicates --embeddings ${embedding} -t 0.9 --projections 12 -o $out/duplicates ${allParagraphs}/pages.cbor.paragraphs +RTS -N30 -A64M -s -RTS
     '';
   };
 
@@ -223,15 +246,17 @@ in rec {
     buildCommand = ''
       mkdir $out
       ${bin}/trec-car-duplicates-rewrite-table -o $out/duplicates.table -d ${duplicateMapping}/duplicates
-	    ${bin}/trec-car-rewrite-duplicates -o $out/pages.cbor -d $out.duplicates ${processedArticles}/pages.cbor
+	    ${bin}/trec-car-rewrite-duplicates -o $out/pages.cbor -d ${duplicateMapping}/duplicates ${processedArticles}/pages.cbor
     '';
   };
+
+  paragraphCorpus = export "paragraph-corpus" dedupArticles;
 
   # 3. Drop pages of forbidden categories
   filtered =
     let
       preds = '' (!(${globalConfig.prefixMustPreds}) & !(${globalConfig.prefixMaybePreds}) & !is-redirect & !is-disambiguation & !(${globalConfig.categoryPreds})) '';
-    in filterPages "filtered.cbor" processedArticles preds;
+    in filterPages "filtered.cbor" dedupArticles preds;
 
   # 4. Drop lead, images, long/short sections, articles with <3 sections
   base =
@@ -256,22 +281,12 @@ in rec {
   baseTrainFolds = toFolds "base-train" base;
   baseTrainAllFolds = collectSymlinks { name = "base-train-folds"; inputs = baseTrainFolds; };
 
-  # 7. Export
-  export = pagesFile: mkDerivation {
-    name = "export";
-    buildInputs = [ pagesFile ];
-    buildCommand = ''
-      mkdir $out
-      ${bin}/trec-car-export ${pagesFile}/pages.cbor -o $out/pages.cbor --unproc ${rawPages}/pages.cbor
-    '';
-  };
-
   # Readme
   readme = mkDerivation {
     name = "README.mkd";
     buildCommand =
       let
-        contents = ''
+        contents = builtins.toFile "README.mkd" ''
           This data set is part of the TREC CAR dataset version ${globalConfig.version}.
 
           The included TREC CAR data sets by Laura Dietz, Ben Gamari available
@@ -287,19 +302,25 @@ in rec {
         '';
       in ''
         mkdir $out
-        echo '${contents}' >> $out/README.mkd
+        cp ${contents} $out/README.mkd
       '';
   };
 
-  license = ./LICENSE;
+  license = mkDerivation {
+    name = "LICENSE";
+    buildCommand = ''
+      mkdir $out
+      cp ${./LICENSE} $out
+    '';
+  };
 
   # 8. Package
   trainPackage = collectSymlinks {
     name = "train-package";
-    inputs = [license readme] ++ map export baseTrainFolds;
+    inputs = [license readme] ++ map (export "train") baseTrainFolds;
   };
 
-  trainArchive = buildArchive trainPackage;
+  trainArchive = buildArchive "train" trainPackage;
 
   # 9. Build benchmarks
   benchmarkPackages = name: titleList:
@@ -314,18 +335,18 @@ in rec {
              inputs = [
                  license
                  readme
-                 (export train)
+                 (export "${name}-train" train)
                  (exportTitles test)  (exportTopics test)
                  (exportTitles train) (exportTopics train)
-               ] ++ map export trainFolds;
+               ] ++ map (export "${name}-train") trainFolds;
            };
            testPackage = collectSymlinks {
              name = "benchmark-${name}-test";
-             inputs = [ license readme (export test) (exportTopics test) ];
+             inputs = [ license readme (export "${name}-test" test) (exportTopics test) ];
            };
            testPublicPackage = collectSymlinks {
              name = "benchmark-${name}-test-public";
-             inputs = [ license readme (export test) (exportTopics test) ];
+             inputs = [ license readme (export "${name}-test" test) (exportTopics test) ];
              include = [ "*.outlines" "*.titles" "*.topics" ];
            };
          };
@@ -336,10 +357,11 @@ in rec {
      };
 
   # Everything
-  all = mkDerivation {
+  all = collectSymlinks {
     name = config.productName;
-    buildInputs =
+    inputs =
       [ (pagesTocFile rawPages)
+        paragraphCorpus
         trainArchive
         (benchmarks "test200" ./test200.titles)
       ];
@@ -347,6 +369,17 @@ in rec {
 
 
   # Utilities
+  export = name: pagesFile:
+    let toc = pagesTocFile pagesFile;
+    in mkDerivation {
+      name = "export-${name}";
+      buildInputs = [ toc ];
+      buildCommand = ''
+        mkdir $out
+        ${bin}/trec-car-export ${toc}/pages.cbor -o $out/pages.cbor --unproc ${pagesTocFile rawPages}/pages.cbor
+      '';
+    };
+
   exportTitles = pagesFile: mkDerivation {
     name = "export-titles";
     buildInputs = [pagesFile];
@@ -369,7 +402,9 @@ in rec {
     name = "filter-${name}";
     buildInputs = [ pagesFile ];
     buildCommand = ''
-      ${bin}/trec-car-filter ${lang_filter_opts} ${pagesFile} -o $out '${pred}'
+      mkdir $out
+      export LANG=en_US.UTF-8
+      ${bin}/trec-car-filter ${lang_filter_opts} ${pagesFile}/pages.cbor -o $out/pages.cbor '${pred}'
     '';
   };
 
@@ -377,20 +412,24 @@ in rec {
     name = "collect-${name}";
     buildInputs = inputs;
     buildCommand = ''
-      mkdir out
+      mkdir $out
       for i in $buildInputs; do
         for f in $i; do
-          ln $f $out/
+          ln -s $f $out/
         done
       done
     '';
   };
 
-  buildArchive = deriv: mkDerivation {
-    name = "archive";
+  buildArchive = name: deriv: mkDerivation {
+    name = "archive-${name}";
     buildInputs = [
       deriv
     ];
-
+    nativeBuildInputs = [pkgs.zip];
+    buildCommand = ''
+      mkdir $out
+      zip $out/out.zip $buildInputs
+    '';
   };
 }
