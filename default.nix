@@ -3,7 +3,7 @@ let
     productName = "trec-car";
     lang = "en";
     wiki_name = "${lang}wiki";
-    root_url = "http://dumps.wikimedia.your.org/${wiki_name}/${globalConfig.dump_date}";
+    mirror_url = http://dumps.wikimedia.your.org/;
     import_config = ./config.en.yaml;
 
     forbiddenHeadings = pkgs.lib.concatMapStringsSep " " (s: "--forbidden '${s}'") [
@@ -30,7 +30,7 @@ let
 
   globalConfig = rec {
     version = "v1.6";
-    dump_date = "20170901";
+    dump_date = "20161220";
     lang_index = "lang-index";
     prefixMustPreds = ''
       name-has-prefix "Category talk:" |
@@ -94,6 +94,7 @@ let
     '';
   };
 
+  root_url = "${config.mirror_url}${config.wiki_name}/${globalConfig.dump_date}";
   out_dir = "output/${config.productName}";
   bin = "/home/ben/trec-car/mediawiki-annotate/bin";
 
@@ -121,13 +122,56 @@ in rec {
   };
 
   # Dump file preparation
-  dumps = mkDerivation {
+  dumpStatus = mkDerivation {
+    name = "dump-${config.wiki_name}-${globalConfig.dump_date}-status";
+    src = pkgs.fetchurl {
+      name = "dumpstatus.json";
+      url = "${root_url}/dumpstatus.json";
+      sha256 = null;
+    };
+    buildCommand = ''
+      mkdir $out
+      cp $src $out/dumpstatus.json
+    '';
+  };
+
+  dumps = dumpsLocal;
+
+  dumpsLocal = mkDerivation {
+    name = "dump-local";
+    buildCommand = ''
+      mkdir $out
+      ln -s /home/ben/trec-car/data/enwiki-20161220/*.bz2 $out
+    '';
+  };
+
+  dumpsDownloaded = collectSymlinks {
+    name = "dump-${config.wiki_name}-${globalConfig.dump_date}";
+    inputs =
+      let
+        download = name: meta: mkDerivation {
+          name = "dump-${config.wiki_name}-${globalConfig.dump_date}-${name}";
+          src = pkgs.fetchurl {
+            name = name;
+            url = "${config.mirror_url}${meta.url}";
+            sha1 = meta.sha1;
+          };
+          buildCommand = ''
+            mkdir $out
+            cp $src $out
+          '';
+        };
+        metadata = builtins.fromJSON (builtins.readFile "${dumpStatus}/dumpstatus.json");
+      in pkgs.lib.mapAttrsToList download metadata.jobs.articlesdump.files;
+  };
+
+  dumpsOld = mkDerivation {
     name = "dump-${config.wiki_name}-${globalConfig.dump_date}";
     buildInputs = [ pkgs.wget ];
     buildCommand = ''
       mkdir $out
-	    #wget --directory-prefix $out -nd -c -r --no-parent --accept '*-pages-articles[0-9]*.bz2' ${config.root_url} || test $? = 8
-	    wget --directory-prefix $out -nd -c -r --no-parent --accept '*-pages-articles1.*.bz2' ${config.root_url} || test $? = 8
+	    wget --directory-prefix $out -nd -c -r --no-parent --accept '*-pages-articles[0-9]*.bz2' ${root_url} || test $? = 8
+	    #wget --directory-prefix $out -nd -c -r --no-parent --accept '*-pages-articles1.*.bz2' ${root_url} || test $? = 8
     '';
   };
 
@@ -138,7 +182,7 @@ in rec {
     src = pkgs.fetchurl {
       name = "glove.zip";
       url = http://nlp.stanford.edu/data/glove.6B.zip;
-      sha256 = null;
+      sha256 = "1yzjpjffv7v4pln2pjvwgyyi4hbgp5js9xxs6p18bl6bwqpznyk1";
     };
     buildCommand = let encodingFix = builtins.toFile "fix.py" ''
       import sys
@@ -167,6 +211,7 @@ in rec {
     name = "lang-index";
     src = builtins.fetchurl {
       url = http://dumps.wikimedia.your.org/wikidatawiki/entities/20171204/wikidata-20171204-all.json.bz2;
+      sha256 = "0ijrsk5znd3h46pmxhjxdhrpvda998rgqw0v1lrv0f8ysyb50x1g";
     };
     buildCommand = ''
       mkdir $out
@@ -411,13 +456,21 @@ in rec {
   collectSymlinks = { name, inputs, include ? null }: mkDerivation {
     name = "collect-${name}";
     buildInputs = inputs;
-    buildCommand = ''
+    buildCommand =
+      let
+        copyInput = input:
+          let outs = builtins.readDir input.outPath;
+          in if builtins.length (builtins.attrNames outs) == 0
+             then ""
+             else if builtins.length (builtins.attrNames outs) == 1
+             then "ln -s $input/${builtins.elemAt outs 0} $out"
+             else ''
+               mkdir -p $out/${input.name}
+               ln -s ${input}/* $out/${input.name}
+             '';
+      in ''
       mkdir $out
-      for i in $buildInputs; do
-        for f in $i; do
-          ln -s $f $out/
-        done
-      done
+      ${pkgs.lib.concatMapStringsSep "\n" copyInput inputs}
     '';
   };
 
