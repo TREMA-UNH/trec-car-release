@@ -461,11 +461,11 @@ in rec {
     buildCommand =
       let
         copyInput = input:
-          let outs = builtins.readDir input.outPath;
-          in if builtins.length (builtins.attrNames outs) == 0
+          let outs = builtins.attrNames (builtins.readDir input.outPath);
+          in if builtins.length outs == 0
              then ""
-             else if builtins.length (builtins.attrNames outs) == 1
-             then "ln -s $input/${builtins.elemAt outs 0} $out"
+             else if builtins.length outs == 1
+             then "ln -s $input/${builtins.elemAt outs 0} $out/${input.name}"
              else ''
                mkdir -p $out/${input.name}
                ln -s ${input}/* $out/${input.name}
