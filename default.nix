@@ -430,6 +430,7 @@ in rec {
     buildInputs = [pagesFile];
     buildCommand = ''
       mkdir $out
+      export LANG=en_US.UTF-8
       ${bin}/trec-car-dump titles ${pagesFile}/pages.cbor > $out/titles
     '';
   };
@@ -439,6 +440,7 @@ in rec {
     buildInputs = [pagesFile];
     buildCommand = ''
       mkdir $out
+      export LANG=en_US.UTF-8
       ${bin}/trec-car-dump sections --raw ${pagesFile}/pages.cbor > $out/topics
     '';
   };
