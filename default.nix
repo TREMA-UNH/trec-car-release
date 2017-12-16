@@ -285,15 +285,22 @@ in rec {
     '';
   };
 
-  dedupArticles = mkDerivation {
-    name = "dedup.articles.cbor";
-    buildInputs = [processedArticles duplicateMapping];
-    buildCommand = ''
-      mkdir $out
-      ${bin}/trec-car-duplicates-rewrite-table -o $out/duplicates.table -d ${duplicateMapping}/duplicates
-	    ${bin}/trec-car-rewrite-duplicates -o $out/pages.cbor -d ${duplicateMapping}/duplicates ${processedArticles}/pages.cbor
-    '';
-  };
+  dedupArticles =
+    let
+      # Convenient way to temporarily disable the expensive deduplication step
+      # for testing.
+      runDedup = true;
+
+      deduped = mkDerivation {
+        name = "dedup.articles.cbor";
+        buildInputs = [processedArticles duplicateMapping];
+        buildCommand = ''
+          mkdir $out
+          ${bin}/trec-car-duplicates-rewrite-table -o $out/duplicates.table -d ${duplicateMapping}/duplicates
+          ${bin}/trec-car-rewrite-duplicates -o $out/pages.cbor -d ${duplicateMapping}/duplicates ${processedArticles}/pages.cbor
+        '';
+      };
+    in if runDedup then deduped else processedArticles;
 
   paragraphCorpus = export "paragraph-corpus" dedupArticles;
 
