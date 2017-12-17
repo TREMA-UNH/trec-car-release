@@ -96,7 +96,7 @@ let
 
   root_url = "${config.mirror_url}${config.wiki_name}/${globalConfig.dump_date}";
   out_dir = "output/${config.productName}";
-  bin = "/home/ben/trec-car/mediawiki-annotate/bin";
+  bin = "/home/ben/trec-car/mediawiki-annotate-release/bin";
 
   pkgs = import <nixpkgs> { };
   inherit (pkgs.stdenv) mkDerivation;
@@ -204,8 +204,8 @@ in rec {
   embedding = "${glove}/glove.6B.50d.txt";
 
   # -1. Inter-site page title index
-  #langIndex = ./lang-index;
-  langIndex = langIndex2;
+  langIndex = ./lang-index;
+  #langIndex = langIndex2;
 
   langIndex2 = mkDerivation {
     name = "lang-index";
@@ -242,22 +242,42 @@ in rec {
       '';
     };
 
-  # 1. Drop non-article pages
-  articles = mkDerivation {
-    name = "articles.cbor";
-    buildInputs = [ rawPages ];
-    buildCommand =
-      let
-        articlepreds = ''
-          (!(${globalConfig.prefixMustPreds}) & !is-redirect & !is-disambiguation & !name-has-prefix "Category:")
-        '';
-      in ''
-        mkdir $out
-        ${bin}/trec-car-filter ${lang_filter_opts} ${rawPages.out}/pages.cbor -o $out/pages.cbor '${articlepreds}'
-      '';
+  # 0.4: Kick out non-content pages
+  contentPages = filterPages "content.cbor" rawPages '' (!(${globalConfig.prefixMustPreds})) '';
+
+  # 0.5: Fill redirect metadata
+  fixRedirects = pages: mkDerivation {
+    name = "fix-redirects";
+    buildInputs = [ pages ];
+    buildCommand = ''
+      mkdir $out
+      ${bin}/trec-car-fill-metadata --redirect -o $out/pages.cbor -i ${pages}/pages.cbor
+    '';
   };
 
+  redirectedPages =
+    filterPages "filter-redirects" (fixRedirects contentPages)
+    "(!is-redirect)";
+
+  # 0.6: Fill disambiguation and in-link metadata
+  fixDisambig = pages: mkDerivation {
+    name = "fix-disambig.cbor";
+    buildInputs = [ pages ];
+    buildCommand = ''
+      mkdir $out
+      ${bin}/trec-car-fill-metadata --disambiguation -o $out/pages.cbor -i ${pages}/pages.cbor
+    '';
+  };
+
+  unprocessedAll = fixDisambig redirectedPages;
+
   unprocessedTrain = filterPages "unprocessed-train" articles "(train-set)";
+
+  # 1. Drop non-article pages
+  articles =
+    filterPages "filter-disambiguation" unprocessedAll
+    "(!is-disambiguation & !is-category)";
+
 
   # 2. Drop administrative headings and category links
   processedArticles =
@@ -281,7 +301,7 @@ in rec {
     buildCommand = ''
       mkdir $out
       export LANG=en_US.UTF-8
-	    ${bin}/trec-car-minhash-duplicates --embeddings ${embedding} -t 0.9 --projections 12 -o $out/duplicates ${allParagraphs}/pages.cbor.paragraphs +RTS -N30 -A64M -s -RTS
+	    ${bin}/trec-car-minhash-duplicates --embeddings ${embedding} -t 0.9 --projections 12 -o $out/duplicates ${allParagraphs}/pages.cbor.paragraphs +RTS -N50 -A64M -s -RTS
     '';
   };
 
@@ -369,7 +389,7 @@ in rec {
   # 8. Package
   trainPackage = collectSymlinks {
     name = "train-package";
-    inputs = [license readme] ++ map (export "train") baseTrainFolds;
+    inputs = [license readme] ++ map (f: export ("train-"+f.name) f) baseTrainFolds;
   };
 
   trainArchive = buildArchive "train" trainPackage;
@@ -413,9 +433,14 @@ in rec {
     name = config.productName;
     inputs =
       [ (pagesTocFile rawPages)
+        (pagesTocFile articles)
+        (pagesTocFile unprocessedTrain)
+        (pagesTocFile unprocessedAll)
+        (pagesTocFile redirectedPages)
         paragraphCorpus
         trainArchive
         (benchmarks "test200" ./test200.titles)
+        (benchmarks "benchmarkY1" ./benchmarkY1.titles)
       ];
   };
 
