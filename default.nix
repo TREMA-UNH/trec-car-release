@@ -453,7 +453,7 @@ in rec {
       buildInputs = [ toc ];
       buildCommand = ''
         mkdir $out
-        ${bin}/trec-car-export ${toc}/pages.cbor -o $out/pages.cbor --unproc ${pagesTocFile rawPages}/pages.cbor
+        ${bin}/trec-car-export ${toc}/pages.cbor -o $out/pages.cbor
       '';
     };
 
