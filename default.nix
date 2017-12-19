@@ -101,24 +101,40 @@ let
   pkgs = import <nixpkgs> { };
   inherit (pkgs.stdenv) mkDerivation;
 
+  carTool = name: mkDerivation {
+    name = "car-tool-${name}";
+    inputs = [ (builtins.toPath "${bin}/${name}") ];
+    buildCommand = ''
+      mkdir $out
+      cp ${bin}/${name} $out/exe
+    '';
+  };
+
+  #trec_car_build_toc = builtins.toPath "${bin}/trec-car-build-toc";
+  carTools = {
+    build_toc = carTool "trec-car-build-toc";
+    _import = carTool "trec-car-import";
+  };
+
 in rec {
   lang_filter_opts = "--lang-index=${langIndex}/lang-index.cbor --from-site=${config.wiki_name}";
 
   # TOC file generation
+
   pagesTocFile = pagesFile: mkDerivation {
-    name = "toc";
+    name = "${pagesFile.name}.toc";
     buildInputs = [pagesFile];
     buildCommand = ''
       mkdir $out
       ln -s ${pagesFile}/pages.cbor $out/
-      ${bin}/trec-car-build-toc pages $out/pages.cbor
+      ${carTools.build_toc}/exe pages $out/pages.cbor
     '';
   };
 
   parasTocFile = parasFile: mkDerivation {
     name = "${parasFile}.toc";
     buildInputs = parasFile;
-    buildCommand = '' ${bin}/trec-car-build-toc paragraphs ${parasFile} > $out '';
+    buildCommand = '' ${carTools.build_toc}/exe paragraphs ${parasFile} > $out '';
   };
 
   # Dump file preparation
@@ -227,9 +243,10 @@ in rec {
       dumpFiles = builtins.attrNames (builtins.readDir dumps.out);
       genRawPages = dumpFile: mkDerivation {
         name = "rawPagesSingle";
+        buildInputs = [ carTools._import ];
         buildCommand = ''
           mkdir $out
-          bzcat ${dumpFile} | ${bin}/trec-car-import -c ${builtins.toPath config.import_config} --dump-date=${globalConfig.dump_date} --release-name="${config.productName} ${globalConfig.version}" -j8 > $out/pages.cbor
+          bzcat ${dumpFile} | ${carTools._import}/exe -c ${builtins.toPath config.import_config} --dump-date=${globalConfig.dump_date} --release-name="${config.productName} ${globalConfig.version}" -j8 > $out/pages.cbor
         '';
       };
 
