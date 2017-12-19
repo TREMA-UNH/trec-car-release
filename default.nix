@@ -449,7 +449,9 @@ in rec {
   all = collectSymlinks {
     name = config.productName;
     inputs =
-      [ (pagesTocFile rawPages)
+         builtins.attrValues carTools
+      ++ [
+        (pagesTocFile rawPages)
         (pagesTocFile articles)
         (pagesTocFile unprocessedTrain)
         (pagesTocFile unprocessedAll)
