@@ -96,27 +96,36 @@ let
 
   root_url = "${config.mirror_url}${config.wiki_name}/${globalConfig.dump_date}";
   out_dir = "output/${config.productName}";
-  bin = "/home/ben/trec-car/mediawiki-annotate-release/bin";
+  bin = /home/ben/trec-car/mediawiki-annotate-release/bin;
 
   pkgs = import <nixpkgs> { };
   inherit (pkgs.stdenv) mkDerivation;
 
-  carTool = name: mkDerivation {
-    name = "car-tool-${name}";
-    inputs = [ (builtins.toPath "${bin}/${name}") ];
-    buildCommand = ''
-      mkdir $out
-      cp ${bin}/${name} $out/exe
-    '';
-  };
+  carTool = name: builtins.toPath "${bin}/${name}";
+  #carTool = name: mkDerivation {
+  #  name = "car-tool-${name}";
+  #  inputs = [ (builtins.toPath "${bin}/${name}") ];
+  #  buildCommand = ''
+  #    mkdir $out
+  #    cp ${bin}/${name} $out/exe
+  #  '';
+  #};
 
   #trec_car_build_toc = builtins.toPath "${bin}/trec-car-build-toc";
   carTools = {
     build_toc = carTool "trec-car-build-toc";
+    filter = carTool "trec-car-filter";
+    export = carTool "trec-car-export";
     _import = carTool "trec-car-import";
+    cat    = carTool "trec-car-cat";
+    dump   = carTool "trec-car-dump";
+    fill_metadata    = carTool "trec-car-fill-metadata";
+    transform_content = carTool "trec-car-transform-content";
   };
 
 in rec {
+  inherit carTools;
+
   lang_filter_opts = "--lang-index=${langIndex}/lang-index.cbor --from-site=${config.wiki_name}";
 
   # TOC file generation
@@ -127,14 +136,14 @@ in rec {
     buildCommand = ''
       mkdir $out
       ln -s ${pagesFile}/pages.cbor $out/
-      ${carTools.build_toc}/exe pages $out/pages.cbor
+      ${carTools.build_toc} pages $out/pages.cbor
     '';
   };
 
   parasTocFile = parasFile: mkDerivation {
     name = "${parasFile}.toc";
     buildInputs = parasFile;
-    buildCommand = '' ${carTools.build_toc}/exe paragraphs ${parasFile} > $out '';
+    buildCommand = '' ${carTools.build_toc} paragraphs ${parasFile} > $out '';
   };
 
   # Dump file preparation
@@ -232,7 +241,7 @@ in rec {
     buildCommand = ''
       mkdir $out
       cd $out
-      bzcat $src | ${bin}/multilang-car-index
+      bzcat $src | ${carTool "multilang-car-index"}
       mv out lang-index.cbor
     '';
   };
@@ -243,10 +252,9 @@ in rec {
       dumpFiles = builtins.attrNames (builtins.readDir dumps.out);
       genRawPages = dumpFile: mkDerivation {
         name = "rawPagesSingle";
-        buildInputs = [ carTools._import ];
         buildCommand = ''
           mkdir $out
-          bzcat ${dumpFile} | ${carTools._import}/exe -c ${builtins.toPath config.import_config} --dump-date=${globalConfig.dump_date} --release-name="${config.productName} ${globalConfig.version}" -j8 > $out/pages.cbor
+          bzcat ${dumpFile} | ${carTools._import} -c ${builtins.toPath config.import_config} --dump-date=${globalConfig.dump_date} --release-name="${config.productName} ${globalConfig.version}" -j8 > $out/pages.cbor
         '';
       };
 
@@ -255,7 +263,7 @@ in rec {
       buildInputs = map (f: genRawPages "${dumps.out}/${f}") dumpFiles;
       buildCommand = ''
         mkdir $out
-	      ${bin}/trec-car-cat -o $out/pages.cbor ${pkgs.lib.concatMapStringsSep " " (f: "${f}/pages.cbor") buildInputs}
+	      ${carTools.cat} -o $out/pages.cbor ${pkgs.lib.concatMapStringsSep " " (f: "${f}/pages.cbor") buildInputs}
       '';
     };
 
@@ -268,7 +276,7 @@ in rec {
     buildInputs = [ pages ];
     buildCommand = ''
       mkdir $out
-      ${bin}/trec-car-fill-metadata --redirect -o $out/pages.cbor -i ${pages}/pages.cbor
+      ${carTools.fill_metadata} --redirect -o $out/pages.cbor -i ${pages}/pages.cbor
     '';
   };
 
@@ -282,7 +290,7 @@ in rec {
     buildInputs = [ pages ];
     buildCommand = ''
       mkdir $out
-      ${bin}/trec-car-fill-metadata --disambiguation -o $out/pages.cbor -i ${pages}/pages.cbor
+      ${carTools.fill_metadata} --disambiguation -o $out/pages.cbor -i ${pages}/pages.cbor
     '';
   };
 
@@ -292,9 +300,17 @@ in rec {
 
   # 1. Drop non-article pages
   articles =
-    filterPages "filter-disambiguation" unprocessedAll
+    filterPages "articles" unprocessedAll
     "(!is-disambiguation & !is-category)";
 
+  articlesWithToc = pagesTocFile articles;
+  laura = collectSymlinks { name = "hi"; inputs = [
+    (pagesTocFile articles)
+    (rawPages)
+    (contentPages)
+    (unprocessedAll)
+    (redirectedPages)
+  ]; };
 
   # 2. Drop administrative headings and category links
   processedArticles =
@@ -305,7 +321,7 @@ in rec {
       buildInputs = [articles];
       buildCommand = ''
         mkdir $out
-        ${bin}/trec-car-transform-content ${articles}/pages.cbor -o $out/pages.cbor ${transformUnproc}
+        ${carTools.transform_content} ${articles}/pages.cbor -o $out/pages.cbor ${transformUnproc}
       '';
     };
 
@@ -318,7 +334,7 @@ in rec {
     buildCommand = ''
       mkdir $out
       export LANG=en_US.UTF-8
-	    ${bin}/trec-car-minhash-duplicates --embeddings ${embedding} -t 0.9 --projections 12 -o $out/duplicates ${allParagraphs}/pages.cbor.paragraphs +RTS -N50 -A64M -s -RTS
+	    ${carTool "trec-car-minhash-duplicates"} --embeddings ${embedding} -t 0.9 --projections 12 -o $out/duplicates ${allParagraphs}/pages.cbor.paragraphs +RTS -N50 -A64M -s -RTS
     '';
   };
 
@@ -333,8 +349,8 @@ in rec {
         buildInputs = [processedArticles duplicateMapping];
         buildCommand = ''
           mkdir $out
-          ${bin}/trec-car-duplicates-rewrite-table -o $out/duplicates.table -d ${duplicateMapping}/duplicates
-          ${bin}/trec-car-rewrite-duplicates -o $out/pages.cbor -d ${duplicateMapping}/duplicates ${processedArticles}/pages.cbor
+          ${carTool "trec-car-duplicates-rewrite-table"} -o $out/duplicates.table -d ${duplicateMapping}/duplicates
+          ${carTool "trec-car-rewrite-duplicates"} -o $out/pages.cbor -d ${duplicateMapping}/duplicates ${processedArticles}/pages.cbor
         '';
       };
     in if runDedup then deduped else processedArticles;
@@ -354,7 +370,7 @@ in rec {
       buildInputs = [filtered];
       buildCommand = ''
         mkdir $out
-        ${bin}/trec-car-transform-content ${config.forbiddenHeadings} ${filtered}/pages.cbor -o $out/pages.cbor
+        ${carTools.transform_content} ${config.forbiddenHeadings} ${filtered}/pages.cbor -o $out/pages.cbor
       '';
     };
 
@@ -472,7 +488,7 @@ in rec {
       buildInputs = [ toc ];
       buildCommand = ''
         mkdir $out
-        ${bin}/trec-car-export ${toc}/pages.cbor -o $out/pages.cbor
+        ${carTools.export} ${toc}/pages.cbor -o $out/pages.cbor
       '';
     };
 
@@ -482,7 +498,7 @@ in rec {
     buildCommand = ''
       mkdir $out
       export LANG=en_US.UTF-8
-      ${bin}/trec-car-dump titles ${pagesFile}/pages.cbor > $out/titles
+      ${carTools.dump} titles ${pagesFile}/pages.cbor > $out/titles
     '';
   };
 
@@ -492,7 +508,7 @@ in rec {
     buildCommand = ''
       mkdir $out
       export LANG=en_US.UTF-8
-      ${bin}/trec-car-dump sections --raw ${pagesFile}/pages.cbor > $out/topics
+      ${carTools.dump} sections --raw ${pagesFile}/pages.cbor > $out/topics
     '';
   };
 
@@ -502,7 +518,7 @@ in rec {
     buildCommand = ''
       mkdir $out
       export LANG=en_US.UTF-8
-      ${bin}/trec-car-filter ${lang_filter_opts} ${pagesFile}/pages.cbor -o $out/pages.cbor '${pred}'
+      ${carTools.filter} ${lang_filter_opts} ${pagesFile}/pages.cbor -o $out/pages.cbor '${pred}'
     '';
   };
 
