@@ -318,7 +318,7 @@ in rec {
     buildCommand = ''
       mkdir $out
       export LANG=en_US.UTF-8
-	    ${bin}/trec-car-minhash-duplicates --embeddings ${embedding} -t 0.9 --projections 12 -o $out/duplicates ${allParagraphs}/pages.cbor.paragraphs +RTS -N50 -A64M -s -RTS
+	    ${bin}/trec-car-minhash-duplicates --embeddings ${embedding} -t 0.9 --projections 12 -o $out/duplicates -c $out/bucket-counts ${allParagraphs}/pages.cbor.paragraphs +RTS -N50 -A64M -s -RTS
     '';
   };
 
