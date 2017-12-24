@@ -101,7 +101,7 @@ let
   pkgs = import <nixpkgs> { };
   inherit (pkgs.stdenv) mkDerivation;
 
-  carTool = name: builtins.toPath "${bin}/${name}";
+  carTool = name: "${bin}/${name}";
   #carTool = name: mkDerivation {
   #  name = "car-tool-${name}";
   #  inputs = [ (builtins.toPath "${bin}/${name}") ];
