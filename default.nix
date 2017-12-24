@@ -3,7 +3,7 @@ let
     productName = "trec-car";
     lang = "en";
     wiki_name = "${lang}wiki";
-    root_url = "http://dumps.wikimedia.your.org/${wiki_name}/${globalConfig.dump_date}";
+    mirror_url = http://dumps.wikimedia.your.org/;
     import_config = ./config.en.yaml;
 
     forbiddenHeadings = pkgs.lib.concatMapStringsSep " " (s: "--forbidden '${s}'") [
@@ -30,7 +30,7 @@ let
 
   globalConfig = rec {
     version = "v1.6";
-    dump_date = "20170901";
+    dump_date = "20161220";
     lang_index = "lang-index";
     prefixMustPreds = ''
       name-has-prefix "Category talk:" |
@@ -94,40 +94,100 @@ let
     '';
   };
 
+  root_url = "${config.mirror_url}${config.wiki_name}/${globalConfig.dump_date}";
   out_dir = "output/${config.productName}";
-  bin = "/home/ben/trec-car/mediawiki-annotate/bin";
+  bin = "/home/ben/trec-car/mediawiki-annotate-release/bin";
 
   pkgs = import <nixpkgs> { };
   inherit (pkgs.stdenv) mkDerivation;
+
+  carTool = name: mkDerivation {
+    name = "car-tool-${name}";
+    inputs = [ (builtins.toPath "${bin}/${name}") ];
+    buildCommand = ''
+      mkdir $out
+      cp ${bin}/${name} $out/exe
+    '';
+  };
+
+  #trec_car_build_toc = builtins.toPath "${bin}/trec-car-build-toc";
+  carTools = {
+    build_toc = carTool "trec-car-build-toc";
+    _import = carTool "trec-car-import";
+  };
 
 in rec {
   lang_filter_opts = "--lang-index=${langIndex}/lang-index.cbor --from-site=${config.wiki_name}";
 
   # TOC file generation
+
   pagesTocFile = pagesFile: mkDerivation {
-    name = "toc";
+    name = "${pagesFile.name}.toc";
     buildInputs = [pagesFile];
     buildCommand = ''
       mkdir $out
       ln -s ${pagesFile}/pages.cbor $out/
-      ${bin}/trec-car-build-toc pages $out/pages.cbor
+      ${carTools.build_toc}/exe pages $out/pages.cbor
     '';
   };
 
   parasTocFile = parasFile: mkDerivation {
     name = "${parasFile}.toc";
     buildInputs = parasFile;
-    buildCommand = '' ${bin}/trec-car-build-toc paragraphs ${parasFile} > $out '';
+    buildCommand = '' ${carTools.build_toc}/exe paragraphs ${parasFile} > $out '';
   };
 
   # Dump file preparation
-  dumps = mkDerivation {
+  dumpStatus = mkDerivation {
+    name = "dump-${config.wiki_name}-${globalConfig.dump_date}-status";
+    src = pkgs.fetchurl {
+      name = "dumpstatus.json";
+      url = "${root_url}/dumpstatus.json";
+      sha256 = null;
+    };
+    buildCommand = ''
+      mkdir $out
+      cp $src $out/dumpstatus.json
+    '';
+  };
+
+  dumps = dumpsLocal;
+
+  dumpsLocal = mkDerivation {
+    name = "dump-local";
+    buildCommand = ''
+      mkdir $out
+      ln -s /home/ben/trec-car/data/enwiki-20161220/*.bz2 $out
+    '';
+  };
+
+  dumpsDownloaded = collectSymlinks {
+    name = "dump-${config.wiki_name}-${globalConfig.dump_date}";
+    inputs =
+      let
+        download = name: meta: mkDerivation {
+          name = "dump-${config.wiki_name}-${globalConfig.dump_date}-${name}";
+          src = pkgs.fetchurl {
+            name = name;
+            url = "${config.mirror_url}${meta.url}";
+            sha1 = meta.sha1;
+          };
+          buildCommand = ''
+            mkdir $out
+            cp $src $out
+          '';
+        };
+        metadata = builtins.fromJSON (builtins.readFile "${dumpStatus}/dumpstatus.json");
+      in pkgs.lib.mapAttrsToList download metadata.jobs.articlesdump.files;
+  };
+
+  dumpsOld = mkDerivation {
     name = "dump-${config.wiki_name}-${globalConfig.dump_date}";
     buildInputs = [ pkgs.wget ];
     buildCommand = ''
       mkdir $out
-	    #wget --directory-prefix $out -nd -c -r --no-parent --accept '*-pages-articles[0-9]*.bz2' ${config.root_url} || test $? = 8
-	    wget --directory-prefix $out -nd -c -r --no-parent --accept '*-pages-articles1.*.bz2' ${config.root_url} || test $? = 8
+	    wget --directory-prefix $out -nd -c -r --no-parent --accept '*-pages-articles[0-9]*.bz2' ${root_url} || test $? = 8
+	    #wget --directory-prefix $out -nd -c -r --no-parent --accept '*-pages-articles1.*.bz2' ${root_url} || test $? = 8
     '';
   };
 
@@ -138,7 +198,7 @@ in rec {
     src = pkgs.fetchurl {
       name = "glove.zip";
       url = http://nlp.stanford.edu/data/glove.6B.zip;
-      sha256 = null;
+      sha256 = "1yzjpjffv7v4pln2pjvwgyyi4hbgp5js9xxs6p18bl6bwqpznyk1";
     };
     buildCommand = let encodingFix = builtins.toFile "fix.py" ''
       import sys
@@ -160,13 +220,14 @@ in rec {
   embedding = "${glove}/glove.6B.50d.txt";
 
   # -1. Inter-site page title index
-  #langIndex = ./lang-index;
-  langIndex = langIndex2;
+  langIndex = ./lang-index;
+  #langIndex = langIndex2;
 
   langIndex2 = mkDerivation {
     name = "lang-index";
     src = builtins.fetchurl {
       url = http://dumps.wikimedia.your.org/wikidatawiki/entities/20171204/wikidata-20171204-all.json.bz2;
+      sha256 = "0ijrsk5znd3h46pmxhjxdhrpvda998rgqw0v1lrv0f8ysyb50x1g";
     };
     buildCommand = ''
       mkdir $out
@@ -182,9 +243,10 @@ in rec {
       dumpFiles = builtins.attrNames (builtins.readDir dumps.out);
       genRawPages = dumpFile: mkDerivation {
         name = "rawPagesSingle";
+        buildInputs = [ carTools._import ];
         buildCommand = ''
           mkdir $out
-          bzcat ${dumpFile} | ${bin}/trec-car-import -c ${builtins.toPath config.import_config} --dump-date=${globalConfig.dump_date} --release-name="${config.productName} ${globalConfig.version}" -j$CORES > $out/pages.cbor
+          bzcat ${dumpFile} | ${carTools._import}/exe -c ${builtins.toPath config.import_config} --dump-date=${globalConfig.dump_date} --release-name="${config.productName} ${globalConfig.version}" -j$NIX_BUILD_CORES > $out/pages.cbor
         '';
       };
 
@@ -197,22 +259,42 @@ in rec {
       '';
     };
 
-  # 1. Drop non-article pages
-  articles = mkDerivation {
-    name = "articles.cbor";
-    buildInputs = [ rawPages ];
-    buildCommand =
-      let
-        articlepreds = ''
-          (!(${globalConfig.prefixMustPreds}) & !is-redirect & !is-disambiguation & !name-has-prefix "Category:")
-        '';
-      in ''
-        mkdir $out
-        ${bin}/trec-car-filter ${lang_filter_opts} ${rawPages.out}/pages.cbor -o $out/pages.cbor '${articlepreds}'
-      '';
+  # 0.4: Kick out non-content pages
+  contentPages = filterPages "content.cbor" rawPages '' (!(${globalConfig.prefixMustPreds})) '';
+
+  # 0.5: Fill redirect metadata
+  fixRedirects = pages: mkDerivation {
+    name = "fix-redirects";
+    buildInputs = [ pages ];
+    buildCommand = ''
+      mkdir $out
+      ${bin}/trec-car-fill-metadata --redirect -o $out/pages.cbor -i ${pages}/pages.cbor
+    '';
   };
 
+  redirectedPages =
+    filterPages "filter-redirects" (fixRedirects contentPages)
+    "(!is-redirect)";
+
+  # 0.6: Fill disambiguation and in-link metadata
+  fixDisambig = pages: mkDerivation {
+    name = "fix-disambig.cbor";
+    buildInputs = [ pages ];
+    buildCommand = ''
+      mkdir $out
+      ${bin}/trec-car-fill-metadata --disambiguation -o $out/pages.cbor -i ${pages}/pages.cbor
+    '';
+  };
+
+  unprocessedAll = fixDisambig redirectedPages;
+
   unprocessedTrain = filterPages "unprocessed-train" articles "(train-set)";
+
+  # 1. Drop non-article pages
+  articles =
+    filterPages "filter-disambiguation" unprocessedAll
+    "(!is-disambiguation & !is-category)";
+
 
   # 2. Drop administrative headings and category links
   processedArticles =
@@ -236,19 +318,26 @@ in rec {
     buildCommand = ''
       mkdir $out
       export LANG=en_US.UTF-8
-	    ${bin}/trec-car-minhash-duplicates --embeddings ${embedding} -t 0.9 --projections 12 -o $out/duplicates ${allParagraphs}/pages.cbor.paragraphs +RTS -N30 -A64M -s -RTS
+	    ${bin}/trec-car-minhash-duplicates --embeddings ${embedding} -t 0.9 --projections 12 -o $out/duplicates ${allParagraphs}/pages.cbor.paragraphs +RTS -N50 -A64M -s -RTS
     '';
   };
 
-  dedupArticles = mkDerivation {
-    name = "dedup.articles.cbor";
-    buildInputs = [processedArticles duplicateMapping];
-    buildCommand = ''
-      mkdir $out
-      ${bin}/trec-car-duplicates-rewrite-table -o $out/duplicates.table -d ${duplicateMapping}/duplicates
-	    ${bin}/trec-car-rewrite-duplicates -o $out/pages.cbor -d ${duplicateMapping}/duplicates ${processedArticles}/pages.cbor
-    '';
-  };
+  dedupArticles =
+    let
+      # Convenient way to temporarily disable the expensive deduplication step
+      # for testing.
+      runDedup = true;
+
+      deduped = mkDerivation {
+        name = "dedup.articles.cbor";
+        buildInputs = [processedArticles duplicateMapping];
+        buildCommand = ''
+          mkdir $out
+          ${bin}/trec-car-duplicates-rewrite-table -o $out/duplicates.table -d ${duplicateMapping}/duplicates
+          ${bin}/trec-car-rewrite-duplicates -o $out/pages.cbor -d ${duplicateMapping}/duplicates ${processedArticles}/pages.cbor
+        '';
+      };
+    in if runDedup then deduped else processedArticles;
 
   paragraphCorpus = export "paragraph-corpus" dedupArticles;
 
@@ -317,7 +406,7 @@ in rec {
   # 8. Package
   trainPackage = collectSymlinks {
     name = "train-package";
-    inputs = [license readme] ++ map (export "train") baseTrainFolds;
+    inputs = [license readme] ++ map (f: export ("train-"+f.name) f) baseTrainFolds;
   };
 
   trainArchive = buildArchive "train" trainPackage;
@@ -360,10 +449,17 @@ in rec {
   all = collectSymlinks {
     name = config.productName;
     inputs =
-      [ (pagesTocFile rawPages)
+         builtins.attrValues carTools
+      ++ [
+        (pagesTocFile rawPages)
+        (pagesTocFile articles)
+        (pagesTocFile unprocessedTrain)
+        (pagesTocFile unprocessedAll)
+        (pagesTocFile redirectedPages)
         paragraphCorpus
         trainArchive
         (benchmarks "test200" ./test200.titles)
+        (benchmarks "benchmarkY1" ./benchmarkY1.titles)
       ];
   };
 
@@ -376,7 +472,7 @@ in rec {
       buildInputs = [ toc ];
       buildCommand = ''
         mkdir $out
-        ${bin}/trec-car-export ${toc}/pages.cbor -o $out/pages.cbor --unproc ${pagesTocFile rawPages}/pages.cbor
+        ${bin}/trec-car-export ${toc}/pages.cbor -o $out/pages.cbor
       '';
     };
 
@@ -385,6 +481,7 @@ in rec {
     buildInputs = [pagesFile];
     buildCommand = ''
       mkdir $out
+      export LANG=en_US.UTF-8
       ${bin}/trec-car-dump titles ${pagesFile}/pages.cbor > $out/titles
     '';
   };
@@ -394,6 +491,7 @@ in rec {
     buildInputs = [pagesFile];
     buildCommand = ''
       mkdir $out
+      export LANG=en_US.UTF-8
       ${bin}/trec-car-dump sections --raw ${pagesFile}/pages.cbor > $out/topics
     '';
   };
@@ -411,13 +509,21 @@ in rec {
   collectSymlinks = { name, inputs, include ? null }: mkDerivation {
     name = "collect-${name}";
     buildInputs = inputs;
-    buildCommand = ''
+    buildCommand =
+      let
+        copyInput = input:
+          let outs = builtins.attrNames (builtins.readDir input.outPath);
+          in if builtins.length outs == 0
+             then ""
+             else if builtins.length outs == 1
+             then "ln -s ${input}/${builtins.elemAt outs 0} $out/${input.name}"
+             else ''
+               mkdir -p $out/${input.name}
+               ln -s ${input}/* $out/${input.name}
+             '';
+      in ''
       mkdir $out
-      for i in $buildInputs; do
-        for f in $i; do
-          ln -s $f $out/
-        done
-      done
+      ${pkgs.lib.concatMapStringsSep "\n" copyInput inputs}
     '';
   };
 
