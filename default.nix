@@ -309,7 +309,7 @@ in rec {
       '';
     };
 
-  allParagraphs = export "all-paragraphs" processedArticles;
+  allParagraphs = exportParagraphs "all-paragraphs" processedArticles;
 
   # 3. Drop duplicate paragraphs
   duplicateMapping = mkDerivation {
@@ -339,7 +339,7 @@ in rec {
       };
     in if runDedup then deduped else processedArticles;
 
-  paragraphCorpus = export "paragraph-corpus" dedupArticles;
+  paragraphCorpus = exportParagraphs "paragraph-corpus" dedupArticles;
 
   # 3. Drop pages of forbidden categories
   filtered =
@@ -406,7 +406,7 @@ in rec {
   # 8. Package
   trainPackage = collectSymlinks {
     name = "train-package";
-    inputs = [license readme] ++ map (f: export ("train-"+f.name) f) baseTrainFolds;
+    inputs = [license readme] ++ map (f: exportAll ("train-"+f.name) f) baseTrainFolds;
   };
 
   trainArchive = buildArchive "train" trainPackage;
@@ -424,18 +424,18 @@ in rec {
              inputs = [
                  license
                  readme
-                 (export "${name}-train" train)
+                 (exportAll "${name}-train" train)
                  (exportTitles test)  (exportTopics test)
                  (exportTitles train) (exportTopics train)
-               ] ++ map (export "${name}-train") trainFolds;
+               ] ++ map (exportAll "${name}-train") trainFolds;
            };
            testPackage = collectSymlinks {
              name = "benchmark-${name}-test";
-             inputs = [ license readme (export "${name}-test" test) (exportTopics test) ];
+             inputs = [ license readme (exportAll "${name}-test" test) (exportTopics test) ];
            };
            testPublicPackage = collectSymlinks {
              name = "benchmark-${name}-test-public";
-             inputs = [ license readme (export "${name}-test" test) (exportTopics test) ];
+             inputs = [ license readme (exportAll "${name}-test" test) (exportTopics test) ];
              include = [ "*.outlines" "*.titles" "*.topics" ];
            };
          };
@@ -465,16 +465,22 @@ in rec {
 
 
   # Utilities
-  export = name: pagesFile:
+  export = mode: output: name: pagesFile:
     let toc = pagesTocFile pagesFile;
     in mkDerivation {
-      name = "export-${name}";
+      name = "export-${mode}-${name}";
       buildInputs = [ toc ];
       buildCommand = ''
         mkdir $out
-        ${bin}/trec-car-export ${toc}/pages.cbor -o $out/pages.cbor
+        ${bin}/trec-car-export ${toc}/pages.cbor --${mode} $out/${output}
       '';
     };
+  exportParagraphs = export "paragraphs" "paragraphs.cbor";
+  exportOutlines = export "outlines" "outlines.cbor";
+  exportAll = name: pagesFile: collectSymlinks {
+    name = "export-all";
+    inputs = []; # TODO
+  };
 
   exportTitles = pagesFile: mkDerivation {
     name = "export-titles";
