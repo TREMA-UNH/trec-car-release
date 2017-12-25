@@ -334,7 +334,7 @@ in rec {
     buildCommand = ''
       mkdir $out
       export LANG=en_US.UTF-8
-	    ${carTool "trec-car-minhash-duplicates"} --embeddings ${embedding} -t 0.9 --projections 24 -o $out/duplicates -c $out/bucket-counts ${allParagraphs}/pages.cbor.paragraphs +RTS -N50 -A64M -s -RTS
+	    ${carTool "trec-car-minhash-duplicates"} --embeddings ${embedding} -t 0.9 --projections 24 -o $out/duplicates -c $out/bucket-counts ${allParagraphs}/paragraphs.cbor +RTS -N50 -A64M -s -RTS
     '';
   };
 
@@ -488,7 +488,7 @@ in rec {
       buildInputs = [ toc ];
       buildCommand = ''
         mkdir $out
-        ${carTools.export}/trec-car-export ${toc}/pages.cbor --${mode} $out/${output}
+        ${carTools.export} ${toc}/pages.cbor --${mode} $out/${output}
       '';
     };
   exportParagraphs = export "paragraphs" "paragraphs.cbor";
