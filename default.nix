@@ -304,13 +304,20 @@ in rec {
     "(!is-disambiguation & !is-category)";
 
   articlesWithToc = pagesTocFile articles;
-  laura = collectSymlinks { name = "hi"; inputs = [
-    (pagesTocFile articles)
-    (pagesTocFile rawPages)
-    (contentPages)
-    (unprocessedAll)
-    (redirectedPages)
-  ]; };
+  laura = collectSymlinks2 {
+    name = "laura";
+    files =
+      let
+         toc = name: drv: {
+          "${name}.cbor.toc" = "${drv}/pages.cbor.toc";
+          "${name}.cbor" = "${drv}/pages.cbor";
+        };
+      in toc "raw" (pagesTocFile rawPages)
+      // toc "articles" (pagesTocFile articles)
+      // toc "content" (pagesTocFile contentPages)
+      // toc "unprocessed-all" (pagesTocFile unprocessedAll)
+      // toc "redirected" (pagesTocFile redirectedPages);
+  };
 
   # 2. Drop administrative headings and category links
   processedArticles =
@@ -356,6 +363,12 @@ in rec {
     in if runDedup then deduped else processedArticles;
 
   paragraphCorpus = exportParagraphs "paragraph-corpus" dedupArticles;
+
+  paragraphCorpusPackage = collectSymlinks {
+    name = "paragraphCorpus-package";
+    inputs = [license readme paragraphCorpus];
+  };
+  paragraphCorpusArchive = buildArchive "paragraphCorpus" paragraphCorpusPackage;
 
   # 3. Drop pages of forbidden categories
   filtered =
@@ -443,7 +456,7 @@ in rec {
                  (exportAll "${name}-train" train)
                  (exportTitles test)  (exportTopics test)
                  (exportTitles train) (exportTopics train)
-               ] ++ map (exportAll "${name}-train") trainFolds;
+               ] ++ map (x: exportAll x.name x) trainFolds;
            };
            testPackage = collectSymlinks {
              name = "benchmark-${name}-test";
@@ -462,6 +475,8 @@ in rec {
      };
 
   # Everything
+  test200 = benchmarks "test200" ./test200.titles;
+  benchmarkY1 = benchmarks "benchmarkY1" ./benchmarkY1.titles;
   all = collectSymlinks {
     name = config.productName;
     inputs =
@@ -474,8 +489,8 @@ in rec {
         (pagesTocFile redirectedPages)
         paragraphCorpus
         trainArchive
-        (benchmarks "test200" ./test200.titles)
-        (benchmarks "benchmarkY1" ./benchmarkY1.titles)
+        test200
+        benchmarkY1
       ];
   };
 
@@ -494,12 +509,24 @@ in rec {
   exportParagraphs = export "paragraphs" "paragraphs.cbor";
   exportOutlines = export "outlines" "outlines.cbor";
   exportAll = name: pagesFile: collectSymlinks {
-    name = "export-all";
-    inputs = []; # TODO
+    name = "export-all-${name}";
+    inputs =
+      let
+        qrel = mode: output: export mode output "${name}-${mode}" pagesFile;
+      in [
+        (exportParagraphs "${name}-paragraph" pagesFile)
+        (exportOutlines "${name}-outlines" pagesFile)
+        (qrel "para-hier-qrel" "pages.hierarchical.qrels")
+        (qrel "para-article-qrel" "pages.article.qrels")
+        (qrel "para-toplevel-qrel" "pages.toplevel.qrels")
+        (qrel "entity-hier-qrel" "pages.hierarchical.entity.qrels")
+        (qrel "entity-article-qrel" "pages.article.entity.qrels")
+        (qrel "entity-toplevel-qrel" "pages.toplevel.entity.qrels")
+      ];
   };
 
   exportTitles = pagesFile: mkDerivation {
-    name = "export-titles";
+    name = "export-titles-${pagesFile.name}";
     buildInputs = [pagesFile];
     buildCommand = ''
       mkdir $out
@@ -509,7 +536,7 @@ in rec {
   };
 
   exportTopics = pagesFile: mkDerivation {
-    name = "export-topics";
+    name = "export-topics-${pagesFile.name}";
     buildInputs = [pagesFile];
     buildCommand = ''
       mkdir $out
@@ -528,25 +555,32 @@ in rec {
     '';
   };
 
+  collectSymlinks2 = { name, files }: mkDerivation {
+    name = name;
+    buildCommand =
+      pkgs.lib.concatStringsSep "\n"
+      (["mkdir $out"] ++ pkgs.lib.mapAttrsToList (fname: file: "ln -s ${file} $out/${fname}") files);
+  };
+
   collectSymlinks = { name, inputs, include ? null }: mkDerivation {
     name = "collect-${name}";
     buildInputs = inputs;
     buildCommand =
       let
         copyInput = input:
-          let outs = builtins.attrNames (builtins.readDir input.outPath);
-          in if builtins.length outs == 0
-             then ""
-             else if builtins.length outs == 1
-             then "ln -s ${input}/${builtins.elemAt outs 0} $out/${input.name}"
-             else ''
-               mkdir -p $out/${input.name}
-               ln -s ${input}/* $out/${input.name}
-             '';
+          ''
+            nfiles=$(ls ${input} | wc -l)
+            if [[ $nfiles == 1 ]]; then
+              ln -s $(ls ${input}/*) $out/${input.name}
+            elif [[ $nfiles > 1 ]]; then
+              mkdir -p $out/${input.name}
+              ln -s ${input}/* $out/${input.name}
+            fi
+          '';
       in ''
-      mkdir $out
-      ${pkgs.lib.concatMapStringsSep "\n" copyInput inputs}
-    '';
+        mkdir $out
+        ${pkgs.lib.concatMapStringsSep "\n" copyInput inputs}
+      '';
   };
 
   buildArchive = name: deriv: mkDerivation {
@@ -554,10 +588,10 @@ in rec {
     buildInputs = [
       deriv
     ];
-    nativeBuildInputs = [pkgs.zip];
+    nativeBuildInputs = [pkgs.gnutar pkgs.xz];
     buildCommand = ''
       mkdir $out
-      zip $out/out.zip $buildInputs
+      tar --dereference -cJf $out/out.tar.xz $buildInputs
     '';
   };
 }
