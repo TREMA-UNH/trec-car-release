@@ -306,7 +306,7 @@ in rec {
   articlesWithToc = pagesTocFile articles;
   laura = collectSymlinks { name = "hi"; inputs = [
     (pagesTocFile articles)
-    (rawPages)
+    (pagesTocFile rawPages)
     (contentPages)
     (unprocessedAll)
     (redirectedPages)
@@ -465,7 +465,7 @@ in rec {
   all = collectSymlinks {
     name = config.productName;
     inputs =
-         builtins.attrValues carTools
+         [] #builtins.attrValues carTools
       ++ [
         (pagesTocFile rawPages)
         (pagesTocFile articles)
