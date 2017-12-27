@@ -413,7 +413,9 @@ in rec {
 
   # 6. Split train into folds
   toFolds = name: pagesFile:
-    let fold = n: filterPages "${name}-fold-${toString n}" pagesFile "(fold ${toString n})" "fold-${n}-${pagesFile.pathname}";
+    let fold = n:
+      let nStr = toString n;
+      in filterPages "${name}-fold-${nStr}" pagesFile "(fold ${nStr})" "fold-${nStr}-${pagesFile.pathname}";
     in builtins.genList fold 5;
 
   baseTrainFolds = toFolds "base-train" base;
