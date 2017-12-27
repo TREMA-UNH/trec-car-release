@@ -130,8 +130,9 @@ in rec {
 
   # TOC file generation
 
-  pagesTocFile = pagesFile: mkDerivation {
+  pagesTocFile = pagesFile: mkDerivation rec {
     name = "${pagesFile.name}.toc";
+    passthru.pathname = name;
     buildInputs = [pagesFile];
     buildCommand = ''
       mkdir $out
@@ -140,15 +141,17 @@ in rec {
     '';
   };
 
-  parasTocFile = parasFile: mkDerivation {
+  parasTocFile = parasFile: mkDerivation rec {
     name = "${parasFile}.toc";
+    passthru.pathname = name;
     buildInputs = parasFile;
     buildCommand = '' ${carTools.build_toc} paragraphs ${parasFile} > $out '';
   };
 
   # Dump file preparation
-  dumpStatus = mkDerivation {
+  dumpStatus = mkDerivation rec {
     name = "dump-${config.wiki_name}-${globalConfig.dump_date}-status";
+    passthru.pathname = name;
     src = pkgs.fetchurl {
       name = "dumpstatus.json";
       url = "${root_url}/dumpstatus.json";
@@ -164,34 +167,41 @@ in rec {
 
   dumpsLocal = mkDerivation {
     name = "dump-local";
+    passthru.pathname = "dump-local";
     buildCommand = ''
       mkdir $out
       ln -s /home/ben/trec-car/data/enwiki-20161220/*.bz2 $out
     '';
   };
 
-  dumpsDownloaded = collectSymlinks {
+  dumpsDownloaded = collectSymlinks rec {
     name = "dump-${config.wiki_name}-${globalConfig.dump_date}";
+    pathname = name;
     inputs =
       let
-        download = name: meta: mkDerivation {
-          name = "dump-${config.wiki_name}-${globalConfig.dump_date}-${name}";
-          src = pkgs.fetchurl {
-            name = name;
-            url = "${config.mirror_url}${meta.url}";
-            sha1 = meta.sha1;
-          };
-          buildCommand = ''
-            mkdir $out
-            cp $src $out
-          '';
-        };
+        download = name: meta:
+          let
+            drvName = "dump-${config.wiki_name}-${globalConfig.dump_date}-${name}";
+          in mkDerivation {
+              name = drvName;
+              pathname = drvName;
+              src = pkgs.fetchurl {
+                name = name;
+                url = "${config.mirror_url}${meta.url}";
+                sha1 = meta.sha1;
+              };
+              buildCommand = ''
+                mkdir $out
+                cp $src $out
+              '';
+            };
         metadata = builtins.fromJSON (builtins.readFile "${dumpStatus}/dumpstatus.json");
       in pkgs.lib.mapAttrsToList download metadata.jobs.articlesdump.files;
   };
 
-  dumpsOld = mkDerivation {
+  dumpsOld = mkDerivation rec {
     name = "dump-${config.wiki_name}-${globalConfig.dump_date}";
+    passthru.pathname = name;
     buildInputs = [ pkgs.wget ];
     buildCommand = ''
       mkdir $out
@@ -203,6 +213,7 @@ in rec {
   # GloVe embeddings
   glove = mkDerivation {
     name = "gloVe";
+    passthru.pathname = "gloVe";
     nativeBuildInputs = [pkgs.unzip pkgs.python3];
     src = pkgs.fetchurl {
       name = "glove.zip";
@@ -229,11 +240,12 @@ in rec {
   embedding = "${glove}/glove.6B.50d.txt";
 
   # -1. Inter-site page title index
-  langIndex = ./lang-index;
+  langIndex = ./lang-index; # name may change to 'lang-index.cbor'
   #langIndex = langIndex2;
 
   langIndex2 = mkDerivation {
     name = "lang-index";
+    passthru.pathname = "lang-index.cbor";
     src = builtins.fetchurl {
       url = http://dumps.wikimedia.your.org/wikidatawiki/entities/20171204/wikidata-20171204-all.json.bz2;
       sha256 = "0ijrsk5znd3h46pmxhjxdhrpvda998rgqw0v1lrv0f8ysyb50x1g";
@@ -252,6 +264,7 @@ in rec {
       dumpFiles = builtins.attrNames (builtins.readDir dumps.out);
       genRawPages = dumpFile: mkDerivation {
         name = "rawPagesSingle";
+        passthru.pathname = "${dumpFile}-rawPages.cbor";
         buildCommand = ''
           mkdir $out
           bzcat ${dumpFile} | ${carTools._import} -c ${builtins.toPath config.import_config} --dump-date=${globalConfig.dump_date} --release-name="${config.productName} ${globalConfig.version}" -j$NIX_BUILD_CORES > $out/pages.cbor
@@ -260,6 +273,7 @@ in rec {
 
     in mkDerivation rec {
       name = "all.cbor";
+      passthru.pathname = "all.cbor";
       buildInputs = map (f: genRawPages "${dumps.out}/${f}") dumpFiles;
       buildCommand = ''
         mkdir $out
@@ -268,11 +282,12 @@ in rec {
     };
 
   # 0.4: Kick out non-content pages
-  contentPages = filterPages "content.cbor" rawPages '' (!(${globalConfig.prefixMustPreds})) '';
+  contentPages = filterPages "content.cbor" rawPages '' (!(${globalConfig.prefixMustPreds})) '' "content.cbor";
 
   # 0.5: Fill redirect metadata
   fixRedirects = pages: mkDerivation {
     name = "fix-redirects";
+    passthru.pathname = "fix-redirect.cbor";
     buildInputs = [ pages ];
     buildCommand = ''
       mkdir $out
@@ -281,12 +296,12 @@ in rec {
   };
 
   redirectedPages =
-    filterPages "filter-redirects" (fixRedirects contentPages)
-    "(!is-redirect)";
+    filterPages "filter-redirects" (fixRedirects contentPages)  "(!is-redirect)" "redirectedPages.cbor";
 
   # 0.6: Fill disambiguation and in-link metadata
   fixDisambig = pages: mkDerivation {
     name = "fix-disambig.cbor";
+    passthru.pathname = "fix-disambig.cbor";
     buildInputs = [ pages ];
     buildCommand = ''
       mkdir $out
@@ -296,16 +311,16 @@ in rec {
 
   unprocessedAll = fixDisambig redirectedPages;
 
-  unprocessedTrain = filterPages "unprocessed-train" articles "(train-set)";
+  unprocessedTrain = filterPages "unprocessed-train" articles "(train-set)" "unprocessedTrain.cbor";
 
   # 1. Drop non-article pages
   articles =
-    filterPages "articles" unprocessedAll
-    "(!is-disambiguation & !is-category)";
+    filterPages "articles" unprocessedAll "(!is-disambiguation & !is-category)" "articles.cbor";
 
   articlesWithToc = pagesTocFile articles;
   laura = collectSymlinks2 {
     name = "laura";
+    pathname = "laura";
     files =
       let
          toc = name: drv: {
@@ -325,6 +340,7 @@ in rec {
       transformUnproc = "--lead --image --shortHeading --longHeading --shortpage ${config.forbiddenHeadings}";
     in mkDerivation {
       name = "proc.articles.cbor";
+      passthru.pathname = "proc.articles.cbor";
       buildInputs = [articles];
       buildCommand = ''
         mkdir $out
@@ -337,6 +353,7 @@ in rec {
   # 3. Drop duplicate paragraphs
   duplicateMapping = mkDerivation {
     name = "duplicate-mapping";
+    passthru.pathname = "duplicate-mapping.duplicates";
     buildInputs = [allParagraphs];
     buildCommand = ''
       mkdir $out
@@ -353,6 +370,7 @@ in rec {
 
       deduped = mkDerivation {
         name = "dedup.articles.cbor";
+        passthru.pathname = "dedup.articles";
         buildInputs = [processedArticles duplicateMapping];
         buildCommand = ''
           mkdir $out
@@ -366,6 +384,7 @@ in rec {
 
   paragraphCorpusPackage = collectSymlinks {
     name = "paragraphCorpus-package";
+    pathname = "paragraphCorpus.cbor";
     inputs = [license readme paragraphCorpus];
   };
   paragraphCorpusArchive = buildArchive "paragraphCorpus" paragraphCorpusPackage;
@@ -374,13 +393,14 @@ in rec {
   filtered =
     let
       preds = '' (!(${globalConfig.prefixMustPreds}) & !(${globalConfig.prefixMaybePreds}) & !is-redirect & !is-disambiguation & !(${globalConfig.categoryPreds})) '';
-    in filterPages "filtered.cbor" dedupArticles preds;
+    in filterPages "filtered.cbor" dedupArticles preds "filtered.cbor";
 
   # 4. Drop lead, images, long/short sections, articles with <3 sections
   base =
     mkDerivation {
       name = "base.cbor";
       buildInputs = [filtered];
+      passthru.pathname = "base.cbor";
       buildCommand = ''
         mkdir $out
         ${carTools.transform_content} ${config.forbiddenHeadings} ${filtered}/pages.cbor -o $out/pages.cbor
@@ -388,16 +408,16 @@ in rec {
     };
 
   # 5. Train/test split
-  baseTest = filterPages "base.test.cbor" base "(test-set)";
-  baseTrain = filterPages "base.train.cbor" base "(train-set)";
+  baseTest = filterPages "base.test.cbor" base "(test-set)" "base.test.cbor";
+  baseTrain = filterPages "base.train.cbor" base "(train-set)" "base.train.cbor";
 
   # 6. Split train into folds
   toFolds = name: pagesFile:
-    let fold = n: filterPages "${name}-fold-${toString n}" pagesFile "(fold ${toString n})";
+    let fold = n: filterPages "${name}-fold-${toString n}" pagesFile "(fold ${toString n})" "fold-${n}-${pagesFile.pathname}";
     in builtins.genList fold 5;
 
   baseTrainFolds = toFolds "base-train" base;
-  baseTrainAllFolds = collectSymlinks { name = "base-train-folds"; inputs = baseTrainFolds; };
+  baseTrainAllFolds = collectSymlinks { name = "base-train-folds"; inputs = baseTrainFolds; pathname = "base-train";};
 
   # Readme
   readme = mkDerivation {
@@ -437,6 +457,7 @@ in rec {
   # 8. Package
   trainPackage = collectSymlinks {
     name = "train-package";
+    pathname = "train-package";
     inputs = [license readme] ++ map (f: exportAll ("train-"+f.name) f) baseTrainFolds;
   };
 
@@ -445,22 +466,24 @@ in rec {
   # 9. Build benchmarks
   benchmarkPackages = name: titleList:
       let
-        pages = filterPages "filtered-benchmark-${name}" base ''(name-set-from-file "${titleList}")'';
-        test  = filterPages "${name}-test.cbor" pages "(test-set)";
-        train = filterPages "${name}-train.cbor" pages "(train-set)";
+        pages = filterPages "filtered-benchmark-${name}" base ''(name-set-from-file "${titleList}")'' "filtered-benchmark-${name}" ;
+        test  = filterPages "${name}-test.cbor" pages "(test-set)" "filtered-benchmark-${name}-test";
+        train = filterPages "${name}-train.cbor" pages "(train-set)" "filtered-benchmark-${name}-train";
         trainFolds = toFolds "${name}-train" train;
       in {
            trainPackage = collectSymlinks {
              name = "benchmark-${name}-train";
+             pathname = "${name}-train";
              inputs = [
                  license
                  readme
                  (exportAll "${name}-train" train)
                  (exportTitles train) (exportTopics train)
-               ] ++ map (x: exportAll x.name x) trainFolds;
+               ] ++ map (pagesFile: exportAll pagesFile.name pagesFile) trainFolds;
            };
            testPackage = collectSymlinks {
              name = "benchmark-${name}-test";
+             pathname = "${name}-test";
              inputs = [
                license readme
                (exportAll "${name}-test" test)
@@ -469,6 +492,7 @@ in rec {
            };
            testPublicPackage = collectSymlinks {
              name = "benchmark-${name}-test-public";
+             pathname = "${name}-test-public";
              inputs = [
                license readme
                (exportOutlines "${name}-test" test)
@@ -479,6 +503,7 @@ in rec {
   benchmarks = name: titleList:
      collectSymlinks {
        name = "benchmark-${name}";
+       pathname = name;
        inputs = builtins.attrValues (benchmarkPackages name titleList);
      };
 
@@ -486,6 +511,7 @@ in rec {
   test200 = benchmarks "test200" ./test200.titles;
   benchmarkY1 = benchmarks "benchmarkY1" ./benchmarkY1.titles;
   all = collectSymlinks {
+    pathfile = "all";
     name = config.productName;
     inputs =
          [] #builtins.attrValues carTools
@@ -512,6 +538,7 @@ in rec {
     in mkDerivation {
       name = "export-${mode}-${name}";
       buildInputs = [ toc ];
+      pathname = output;
       buildCommand = ''
         mkdir $out
         ${carTools.export} ${toc}/pages.cbor --${mode} $out/${output}
@@ -519,19 +546,14 @@ in rec {
     };
     
   exportParagraphs = name: pagesFile:
-    (export "paragraphs" "paragraphs.cbor" "${name}-paragraph" pagesFile).override {
-      passthru.pathname = "${pagesFile}.paragraphs.cbor";
-    };
+    export "paragraphs" "paragraphs.cbor" "${name}-paragraph" pagesFile;
   exportOutlines = name: pagesFile:
-    (export "outlines" "outlines.cbor" "${name}-outlines" pagesFile) .override {
-      passthru.pathname = "${pagesFile}.outlines.cbor";
-    };
-  exportQrel = mode: output: name: pagesFile: (export mode output "${name}-${mode}" pagesFile) .override {
-      passthru.pathname = "${pagesFile}.${output}";
-    };
+    export "outlines" "outlines.cbor" "${name}-outlines" pagesFile;
+  exportQrel = mode: output: name: pagesFile: export mode output "${name}-${mode}" pagesFile;
 
   exportAll = name: pagesFile: collectSymlinks {
     name = "export-all-${name}";
+    pathname = baseNameOf pagesFile.pathname;
     inputs =
       let
       in [
@@ -548,7 +570,7 @@ in rec {
 
   exportTitles = pagesFile: mkDerivation {
     name = "export-titles-${pagesFile.name}";
-    passthru.pathname = "${pagesFile.name}.titles";
+    passthru.pathname = "titles";
     buildInputs = [pagesFile];
     buildCommand = ''
       mkdir $out
@@ -559,7 +581,7 @@ in rec {
 
   exportTopics = pagesFile: mkDerivation {
     name = "export-topics-${pagesFile.name}";
-    passthru.pathname = "${pagesFile.name}.topics";
+    passthru.pathname = "topics";
     buildInputs = [pagesFile];
     buildCommand = ''
       mkdir $out
@@ -568,8 +590,9 @@ in rec {
     '';
   };
 
-  filterPages = name: pagesFile: pred: mkDerivation {
+  filterPages = name: pagesFile: pred: pathname: mkDerivation {
     name = "filter-${name}";
+    passthru.pathname = pathname;
     buildInputs = [ pagesFile ];
     buildCommand = ''
       mkdir $out
@@ -591,6 +614,8 @@ in rec {
       pkgs.lib.concatStringsSep "\n"
       (["mkdir $out"] ++ pkgs.lib.mapAttrsToList (fname: file: "ln -s ${file} $out/${fname}") files);
   };
+
+  overridePathName = pathName: drv: drv.overrideAttrs (_: { passthru.pathName = pathName; });
 
   collectSymlinks = { name, inputs, pathname, include ? null }: mkDerivation {
     name = "collect-${name}";
