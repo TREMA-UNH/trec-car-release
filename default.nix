@@ -401,7 +401,8 @@ in rec {
 
   # Readme
   readme = mkDerivation {
-    name = "README.mkd";
+    name = "README";
+    passthru.pathname = "README.mkd";
     buildCommand =
       let
         contents = builtins.toFile "README.mkd" ''
@@ -426,6 +427,7 @@ in rec {
 
   license = mkDerivation {
     name = "LICENSE";
+    passthru.pathname = "LICENSE";
     buildCommand = ''
       mkdir $out
       cp ${./LICENSE} $out
@@ -454,18 +456,24 @@ in rec {
                  license
                  readme
                  (exportAll "${name}-train" train)
-                 (exportTitles test)  (exportTopics test)
                  (exportTitles train) (exportTopics train)
                ] ++ map (x: exportAll x.name x) trainFolds;
            };
            testPackage = collectSymlinks {
              name = "benchmark-${name}-test";
-             inputs = [ license readme (exportAll "${name}-test" test) (exportTopics test) ];
+             inputs = [
+               license readme
+               (exportAll "${name}-test" test)
+               (exportTitles test)  (exportTopics test)
+             ];
            };
            testPublicPackage = collectSymlinks {
              name = "benchmark-${name}-test-public";
-             inputs = [ license readme (exportAll "${name}-test" test) (exportTopics test) ];
-             include = [ "*.outlines" "*.titles" "*.topics" ];
+             inputs = [
+               license readme
+               (exportOutlines "${name}-test" test)
+               (exportTitles test)  (exportTopics test)
+             ];
            };
          };
   benchmarks = name: titleList:
@@ -495,7 +503,10 @@ in rec {
   };
 
 
-  # Utilities
+  ##########################################################
+  # TREC CAR   template derivations
+  ##########################################################
+
   export = mode: output: name: pagesFile:
     let toc = pagesTocFile pagesFile;
     in mkDerivation {
@@ -506,6 +517,7 @@ in rec {
         ${carTools.export} ${toc}/pages.cbor --${mode} $out/${output}
       '';
     };
+    
   exportParagraphs = name: pagesFile:
     (export "paragraphs" "paragraphs.cbor" "${name}-paragraph" pagesFile).override {
       passthru.pathname = "${pagesFile}.paragraphs.cbor";
@@ -566,6 +578,13 @@ in rec {
     '';
   };
 
+
+
+  ##########################################################
+  # Utilities  (independent of trec car)
+  ##########################################################
+
+
   collectSymlinks2 = { name, files }: mkDerivation {
     name = name;
     buildCommand =
@@ -573,9 +592,10 @@ in rec {
       (["mkdir $out"] ++ pkgs.lib.mapAttrsToList (fname: file: "ln -s ${file} $out/${fname}") files);
   };
 
-  collectSymlinks = { name, inputs, include ? null }: mkDerivation {
+  collectSymlinks = { name, inputs, pathname, include ? null }: mkDerivation {
     name = "collect-${name}";
     buildInputs = inputs;
+    passthru.pathname = pathname;
     buildCommand =
       let
         copyInput = input:
@@ -596,6 +616,7 @@ in rec {
 
   buildArchive = name: deriv: mkDerivation {
     name = "archive-${name}";
+    passthru.pathname = "archive-${name}.tar.xz";
     buildInputs = [
       deriv
     ];
