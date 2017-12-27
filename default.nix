@@ -423,7 +423,7 @@ in rec {
 
   # Readme
   readme = mkDerivation {
-    name = "README";
+    name = "README.mkd";
     passthru.pathname = "README.mkd";
     buildCommand =
       let
@@ -540,7 +540,7 @@ in rec {
     in mkDerivation {
       name = "export-${mode}-${name}";
       buildInputs = [ toc ];
-      pathname = output;
+      passthru.pathname = output;
       buildCommand = ''
         mkdir $out
         ${carTools.export} ${toc}/pages.cbor --${mode} $out/${output}
