@@ -506,27 +506,37 @@ in rec {
         ${carTools.export} ${toc}/pages.cbor --${mode} $out/${output}
       '';
     };
-  exportParagraphs = export "paragraphs" "paragraphs.cbor";
-  exportOutlines = export "outlines" "outlines.cbor";
+  exportParagraphs = name: pagesFile:
+    (export "paragraphs" "paragraphs.cbor" "${name}-paragraph" pagesFile).override {
+      passthru.pathname = "${pagesFile}.paragraphs.cbor";
+    };
+  exportOutlines = name: pagesFile:
+    (export "outlines" "outlines.cbor" "${name}-outlines" pagesFile) .override {
+      passthru.pathname = "${pagesFile}.outlines.cbor";
+    };
+  exportQrel = mode: output: name: pagesFile: (export mode output "${name}-${mode}" pagesFile) .override {
+      passthru.pathname = "${pagesFile}.${output}";
+    };
+
   exportAll = name: pagesFile: collectSymlinks {
     name = "export-all-${name}";
     inputs =
       let
-        qrel = mode: output: export mode output "${name}-${mode}" pagesFile;
       in [
-        (exportParagraphs "${name}-paragraph" pagesFile)
-        (exportOutlines "${name}-outlines" pagesFile)
-        (qrel "para-hier-qrel" "pages.hierarchical.qrels")
-        (qrel "para-article-qrel" "pages.article.qrels")
-        (qrel "para-toplevel-qrel" "pages.toplevel.qrels")
-        (qrel "entity-hier-qrel" "pages.hierarchical.entity.qrels")
-        (qrel "entity-article-qrel" "pages.article.entity.qrels")
-        (qrel "entity-toplevel-qrel" "pages.toplevel.entity.qrels")
+        (exportParagraphs name pagesFile)
+        (exportOutlines name pagesFile)
+        (exportQrel "para-hier-qrel"     "hierarchical.qrels" name pagesFile)
+        (exportQrel "para-article-qrel"  "article.qrels" name pagesFile)
+        (exportQrel "para-toplevel-qrel" "toplevel.qrels" name pagesFile)
+        (exportQrel "entity-hier-qrel"     "hierarchical.entity.qrels" name pagesFile)
+        (exportQrel "entity-article-qrel"  "article.entity.qrels" name pagesFile)
+        (exportQrel "entity-toplevel-qrel" "toplevel.entity.qrels" name pagesFile)
       ];
   };
 
   exportTitles = pagesFile: mkDerivation {
     name = "export-titles-${pagesFile.name}";
+    passthru.pathname = "${pagesFile.name}.titles";
     buildInputs = [pagesFile];
     buildCommand = ''
       mkdir $out
@@ -537,6 +547,7 @@ in rec {
 
   exportTopics = pagesFile: mkDerivation {
     name = "export-topics-${pagesFile.name}";
+    passthru.pathname = "${pagesFile.name}.topics";
     buildInputs = [pagesFile];
     buildCommand = ''
       mkdir $out
@@ -571,10 +582,10 @@ in rec {
           ''
             nfiles=$(ls ${input} | wc -l)
             if [[ $nfiles == 1 ]]; then
-              ln -s $(ls ${input}/*) $out/${input.name}
+              ln -s $(ls ${input}/*) $out/${input.pathname}
             elif [[ $nfiles > 1 ]]; then
               mkdir -p $out/${input.name}
-              ln -s ${input}/* $out/${input.name}
+              ln -s ${input}/* $out/${input.pathname}
             fi
           '';
       in ''
