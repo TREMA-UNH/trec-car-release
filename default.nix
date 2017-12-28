@@ -480,9 +480,9 @@ in rec {
                  license
                  readme
                  train
-                 
                  (exportTitles train) (exportTopics train)
                ] ++ (allExports "${name}-train" train)
+               ++ trainFolds
                ++ lib.concatMap (pagesFile: allExports pagesFile.name pagesFile) trainFolds;
            };
            testPackage = collectSymlinks {
