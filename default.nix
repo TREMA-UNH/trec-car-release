@@ -468,9 +468,9 @@ in rec {
   # 9. Build benchmarks
   benchmarkPackages = name: titleList:
       let
-        pages = filterPages "filtered-benchmark-${name}" base ''(name-set-from-file "${titleList}")'' "filtered-benchmark-${name}" ;
-        test  = filterPages "${name}-test.cbor" pages "(test-set)" "filtered-benchmark-${name}-test";
-        train = filterPages "${name}-train.cbor" pages "(train-set)" "filtered-benchmark-${name}-train";
+        pages = filterPages "filtered-benchmark-${name}" base ''(name-set-from-file "${titleList}")'' "pages.cbor" ;
+        test  = filterPages "${name}-test.cbor" pages "(test-set)" "test.pages.cbor";
+        train = filterPages "${name}-train.cbor" pages "(train-set)" "train.pages.cbor";
         trainFolds = toFolds "${name}-train" train;
       in {
            trainPackage = collectSymlinks {
@@ -479,6 +479,7 @@ in rec {
              inputs = [
                  license
                  readme
+                 train
                  (exportAll "${name}-train" train)
                  (exportTitles train) (exportTopics train)
                ] ++ map (pagesFile: exportAll pagesFile.name pagesFile) trainFolds;
@@ -488,6 +489,7 @@ in rec {
              pathname = "${name}-test";
              inputs = [
                license readme
+               test
                (exportAll "${name}-test" test)
                (exportTitles test)  (exportTopics test)
              ];
