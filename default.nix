@@ -537,12 +537,12 @@ in rec {
   # TREC CAR   template derivations
   ##########################################################
 
-  export = mode: output: name: pagesFile:
+  export = {mode, output, pathname ? output, name, pagesFile}:
     let toc = pagesTocFile pagesFile;
     in mkDerivation {
       name = "export-${mode}-${name}";
       buildInputs = [ toc ];
-      passthru.pathname = output;
+      passthru.pathname = pathname;
       buildCommand = ''
         mkdir $out
         ${carTools.export} ${toc}/pages.cbor --${mode} $out/${output}
@@ -550,11 +550,29 @@ in rec {
     };
     
   exportParagraphs = name: pagesFile:
-    export "paragraphs" "${baseNameOf pagesFile.pathname}-paragraphs.cbor" name pagesFile;
+    export {
+      mode = "paragraphs";
+      output = "paragraphs.cbor";
+      pathname = "${baseNameOf pagesFile.pathname}-paragraphs.cbor";
+      name = name;
+      pagesFile = pagesFile;
+    };
   exportOutlines = name: pagesFile:
-    export "outlines" "${baseNameOf pagesFile.pathname}-outlines.cbor" name pagesFile;
+    export {
+      mode = "outlines";
+      output = "outlines.cbor";
+      pathname = "${baseNameOf pagesFile.pathname}-outlines.cbor";
+      name = name;
+      pagesFile = pagesFile;
+    };
   exportQrel = mode: output: name: pagesFile:
-    export mode "${baseNameOf pagesFile.pathname}-${output}.qrels" "${name}-${mode}" pagesFile;
+      export {
+        mode = mode;
+        output =  "${output}.qrels";
+        pathname = "${baseNameOf pagesFile.pathname}-${output}.qrels";
+        name =  "${name}-${mode}";
+        pagesFile = pagesFile;
+      };
 
   allExports = name: pagesFile: 
       [
