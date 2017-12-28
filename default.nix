@@ -184,7 +184,7 @@ in rec {
             drvName = "dump-${config.wiki_name}-${globalConfig.dump_date}-${name}";
           in mkDerivation {
               name = drvName;
-              pathname = drvName;
+              passthru.pathname = drvName;
               src = pkgs.fetchurl {
                 name = name;
                 url = "${config.mirror_url}${meta.url}";
@@ -548,9 +548,9 @@ in rec {
     };
     
   exportParagraphs = name: pagesFile:
-    export "paragraphs" "paragraphs.cbor" "${name}-paragraph" pagesFile;
+    export "paragraphs" "paragraphs.cbor" name pagesFile;
   exportOutlines = name: pagesFile:
-    export "outlines" "outlines.cbor" "${name}-outlines" pagesFile;
+    export "outlines" "outlines.cbor" name pagesFile;
   exportQrel = mode: output: name: pagesFile: export mode output "${name}-${mode}" pagesFile;
 
   exportAll = name: pagesFile: collectSymlinks {
@@ -559,8 +559,8 @@ in rec {
     inputs =
       let
       in [
-        (exportParagraphs name pagesFile)
-        (exportOutlines name pagesFile)
+        (exportParagraphs "${name}-paragraph" pagesFile)
+        (exportOutlines "${name}-outlines" pagesFile)
         (exportQrel "para-hier-qrel"     "hierarchical.qrels" name pagesFile)
         (exportQrel "para-article-qrel"  "article.qrels" name pagesFile)
         (exportQrel "para-toplevel-qrel" "toplevel.qrels" name pagesFile)
