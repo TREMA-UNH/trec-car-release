@@ -631,7 +631,7 @@ in rec {
             if [[ $nfiles == 1 ]]; then
               ln -s $(ls ${input}/*) $out/${input.pathname}
             elif [[ $nfiles > 1 ]]; then
-              mkdir -p $out/${input.name}
+              mkdir -p $out/${input.pathname}
               ln -s ${input}/* $out/${input.pathname}
             fi
           '';
