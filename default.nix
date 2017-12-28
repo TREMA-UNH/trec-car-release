@@ -550,21 +550,22 @@ in rec {
     };
     
   exportParagraphs = name: pagesFile:
-    export "paragraphs" "paragraphs.cbor" name pagesFile;
+    export "paragraphs" "${baseNameOf pagesFile.pathname}-paragraphs.cbor" name pagesFile;
   exportOutlines = name: pagesFile:
-    export "outlines" "outlines.cbor" name pagesFile;
-  exportQrel = mode: output: name: pagesFile: export mode output "${name}-${mode}" pagesFile;
+    export "outlines" "${baseNameOf pagesFile.pathname}-outlines.cbor" name pagesFile;
+  exportQrel = mode: output: name: pagesFile:
+    export mode "${baseNameOf pagesFile.pathname}-${output}.qrels" "${name}-${mode}" pagesFile;
 
   allExports = name: pagesFile: 
       [
         (exportParagraphs "${name}-paragraph" pagesFile)
         (exportOutlines "${name}-outlines" pagesFile)
-        (exportQrel "para-hier-qrel"     "hierarchical.qrels" name pagesFile)
-        (exportQrel "para-article-qrel"  "article.qrels" name pagesFile)
-        (exportQrel "para-toplevel-qrel" "toplevel.qrels" name pagesFile)
-        (exportQrel "entity-hier-qrel"     "hierarchical.entity.qrels" name pagesFile)
-        (exportQrel "entity-article-qrel"  "article.entity.qrels" name pagesFile)
-        (exportQrel "entity-toplevel-qrel" "toplevel.entity.qrels" name pagesFile)
+        (exportQrel "para-hier-qrel"     "hierarchical" name pagesFile)
+        (exportQrel "para-article-qrel"  "article" name pagesFile)
+        (exportQrel "para-toplevel-qrel" "toplevel" name pagesFile)
+        (exportQrel "entity-hier-qrel"     "hierarchical.entity" name pagesFile)
+        (exportQrel "entity-article-qrel"  "article.entity" name pagesFile)
+        (exportQrel "entity-toplevel-qrel" "toplevel.entity" name pagesFile)
       ];
   
   exportTitles = pagesFile: mkDerivation {
