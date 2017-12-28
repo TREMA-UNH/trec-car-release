@@ -646,6 +646,17 @@ in rec {
 
   overridePathName = pathName: drv: drv.overrideAttrs (_: { passthru.pathName = pathName; });
 
+  rmEmpties = { name, drv }: mkDerivation {
+    name = "rm-empties-${name}";
+    buildInputs = [drv];
+    buildCommand = ''
+      for i in $(find -L ${drv} \( -type f -o -type l \) -a \! -empty -printf "%P\n"); do
+        mkdir -p $(dirname $i)
+        ln -s ${drv}/$i $out/$i
+      done
+    '';
+  };
+  
   collectSymlinks = { name, inputs, pathname, include ? null }: mkDerivation {
     name = "collect-${name}";
     buildInputs = inputs;
