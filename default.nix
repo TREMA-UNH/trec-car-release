@@ -468,9 +468,9 @@ in rec {
   # 9. Build benchmarks
   benchmarkPackages = name: titleList:
       let
-        pages = filterPages "filtered-benchmark-${name}" base ''(name-set-from-file "${titleList}")'' "pages.cbor" ;
-        test  = filterPages "${name}-test.cbor" pages "(test-set)" "test.pages.cbor";
-        train = filterPages "${name}-train.cbor" pages "(train-set)" "train.pages.cbor";
+        pages = filterPages "filtered-benchmark-${name}" base ''(name-set-from-file "${titleList}")'' "filtered.pages.cbor" ;
+        test  = filterPages "${name}-test.cbor" pages "(test-set)" "filtered.test.pages.cbor";
+        train = filterPages "${name}-train.cbor" pages "(train-set)" "filtered.train.pages.cbor";
         trainFolds = toFolds "${name}-train" train;
       in {
            trainPackage = collectSymlinks {
