@@ -351,14 +351,25 @@ in rec {
   allParagraphs = exportParagraphs "all-paragraphs" processedArticles;
 
   # 3. Drop duplicate paragraphs
-  duplicateMapping = mkDerivation {
-    name = "duplicate-mapping";
-    passthru.pathname = "duplicate-mapping.duplicates";
+  oneDuplicateMapping = seed: mkDerivation {
+    name = "duplicate-mapping-${toString seed}";
+    passthru.pathname = "duplicate-mapping-${toString seed}.duplicates";
     buildInputs = [allParagraphs];
     buildCommand = ''
       mkdir $out
       export LANG=en_US.UTF-8
-	    ${carTool "trec-car-minhash-duplicates"} --embeddings ${embedding} -t 0.9 --projections 24 -o $out/duplicates -c $out/bucket-counts ${allParagraphs}/paragraphs.cbor +RTS -N50 -A64M -s -RTS
+	    ${carTool "trec-car-minhash-duplicates"} --seed ${toString seed} --embeddings ${embedding} -t 0.9 --projections 24 -o $out/duplicates -c $out/bucket-counts ${allParagraphs}/paragraphs.cbor +RTS -N50 -A64M -s -RTS
+    '';
+  };
+
+  duplicateMappings = sequentialize (lib.genList oneDuplicateMapping 5);
+  duplicateMapping = mkDerivation {
+    name = "duplicate-mapping";
+    passthru.pathname = "duplicate-mapping.duplicates";
+    buildInputs = duplicateMappings;
+    buildCommand = ''
+      mkdir $out
+      cat ${lib.concatMapStringsSep " " (x: "${x}/duplicates") duplicateMappings} | sort -u > $out/duplicates
     '';
   };
 
@@ -515,7 +526,7 @@ in rec {
   test200 = benchmarks "test200" ./test200.titles;
   benchmarkY1 = benchmarks "benchmarkY1" ./benchmarkY1.titles;
   all = collectSymlinks {
-    pathfile = "all";
+    pathname = "all";
     name = config.productName;
     inputs =
          [] #builtins.attrValues carTools
@@ -669,4 +680,9 @@ in rec {
       tar --dereference -cJf $out/out.tar.xz $buildInputs
     '';
   };
+
+  # Prevent nix from evaluating derivations in a list in parallel
+  sequentialize = derivs:
+    let f = drv: rest: builtins.seq (builtins.readDir drv.outPath) ([drv] ++ rest);
+    in lib.foldr f [] derivs;
 }
