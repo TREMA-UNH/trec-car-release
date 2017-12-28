@@ -408,6 +408,13 @@ in rec {
       };
     in if runDedup then deduped else processedArticles;
 
+  # 3e. export deduplication data
+  deduplicationPackage = collectSymlinks {
+    name = "deduplication-package";
+    pathname = "deduplication-package";
+    inputs = [duplicatesTable] ++ duplicateMappings;
+  };
+
 
 
   # ** Paragraph Corpus
@@ -545,6 +552,7 @@ in rec {
   # Everything
   test200 = benchmarks "test200" ./test200.titles;
   benchmarkY1 = benchmarks "benchmarkY1" ./benchmarkY1.titles;
+  deduplicationArchive = buildArchive "deduplication" deduplicationPackage;
   all = collectSymlinks {
     pathname = "all";
     name = config.productName;
@@ -560,6 +568,7 @@ in rec {
         trainArchive
         test200
         benchmarkY1
+        deduplicationArchive
       ];
   };
 
