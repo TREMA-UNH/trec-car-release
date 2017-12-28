@@ -99,7 +99,7 @@ let
   bin = /home/ben/trec-car/mediawiki-annotate-release/bin;
 
   pkgs = import <nixpkgs> { };
-  inherit (pkgs.stdenv) mkDerivation;
+  inherit (pkgs.stdenv) mkDerivation lib;
 
   carTool = name: "${bin}/${name}";
   #carTool = name: mkDerivation {
@@ -460,7 +460,7 @@ in rec {
   trainPackage = collectSymlinks {
     name = "train-package";
     pathname = "train-package";
-    inputs = [license readme] ++ map (f: exportAll ("train-"+f.name) f) baseTrainFolds;
+    inputs = [license readme] ++ map (f: allExports ("train-"+f.name) f) baseTrainFolds;
   };
 
   trainArchive = buildArchive "train" trainPackage;
@@ -480,9 +480,10 @@ in rec {
                  license
                  readme
                  train
-                 (exportAll "${name}-train" train)
+                 
                  (exportTitles train) (exportTopics train)
-               ] ++ map (pagesFile: exportAll pagesFile.name pagesFile) trainFolds;
+               ] ++ (allExports "${name}-train" train)
+               ++ lib.concatMap (pagesFile: allExports pagesFile.name pagesFile) trainFolds;
            };
            testPackage = collectSymlinks {
              name = "benchmark-${name}-test";
@@ -490,9 +491,8 @@ in rec {
              inputs = [
                license readme
                test
-               (exportAll "${name}-test" test)
                (exportTitles test)  (exportTopics test)
-             ];
+             ] ++ (allExports "${name}-test" test);
            };
            testPublicPackage = collectSymlinks {
              name = "benchmark-${name}-test-public";
@@ -555,12 +555,8 @@ in rec {
     export "outlines" "outlines.cbor" name pagesFile;
   exportQrel = mode: output: name: pagesFile: export mode output "${name}-${mode}" pagesFile;
 
-  exportAll = name: pagesFile: collectSymlinks {
-    name = "export-all-${name}";
-    pathname = baseNameOf pagesFile.pathname;
-    inputs =
-      let
-      in [
+  allExports = name: pagesFile: 
+      [
         (exportParagraphs "${name}-paragraph" pagesFile)
         (exportOutlines "${name}-outlines" pagesFile)
         (exportQrel "para-hier-qrel"     "hierarchical.qrels" name pagesFile)
@@ -570,8 +566,7 @@ in rec {
         (exportQrel "entity-article-qrel"  "article.entity.qrels" name pagesFile)
         (exportQrel "entity-toplevel-qrel" "toplevel.entity.qrels" name pagesFile)
       ];
-  };
-
+  
   exportTitles = pagesFile: mkDerivation {
     name = "export-titles-${pagesFile.name}";
     passthru.pathname = "titles";
