@@ -5,6 +5,8 @@ let
     wiki_name = "${lang}wiki";
     mirror_url = http://dumps.wikimedia.your.org/;
     import_config = ./config.en.yaml;
+    # if lost, ressurect from here: jelly:/mnt/grapes/datasets/trec-car/duplicates.v1.5-table.xz
+    duplicates-prev-table = /home/ben/trec-car/data/enwiki-20161220/release-v1.5/articles.dedup.cbor.duplicates.table;
 
     forbiddenHeadings = pkgs.lib.concatMapStringsSep " " (s: "--forbidden '${s}'") [
       "see also"
@@ -350,6 +352,8 @@ in rec {
   allParagraphs = exportParagraphs "all-paragraphs" processedArticles;
 
   # 3. Drop duplicate paragraphs
+
+  # 3a. to run the duplicate detection $n$ times
   oneDuplicateMapping = seed: mkDerivation {
     name = "duplicate-mapping-${toString seed}";
     passthru.pathname = "duplicate-mapping-${toString seed}.duplicates";
@@ -362,9 +366,10 @@ in rec {
   };
 
   duplicateMappings = sequentialize (lib.genList oneDuplicateMapping 5);
-  duplicateMapping = mkDerivation {
-    name = "duplicate-mapping";
-    passthru.pathname = "duplicate-mapping.duplicates";
+  # 3b. combine all detected duplicates
+  combinedDuplicateMapping = mkDerivation {
+    name = "combined-duplicate-mapping";
+    passthru.pathname = "combined-duplicate-mapping.duplicates";
     buildInputs = duplicateMappings;
     buildCommand = ''
       mkdir $out
@@ -372,6 +377,19 @@ in rec {
     '';
   };
 
+  # 3c. create one duplicate table, which respects the canonical choices from v1.5
+  duplicatesTable =
+      mkDerivation {
+        name = "duplicates.table";
+        passthru.pathname = "duplicates.table";
+        buildInputs = [combinedDuplicateMapping config.duplicates-prev-table];
+        buildCommand = ''
+          mkdir $out
+          ${carTool "trec-car-duplicates-rewrite-table"} -o $out/duplicates.table -d ${combinedDuplicateMapping}/duplicates --table ${config.duplicates-prev-table}
+        '';
+      };
+
+  # 3d. rewrite articles with new paragraph ids
   dedupArticles =
     let
       # Convenient way to temporarily disable the expensive deduplication step
@@ -381,15 +399,24 @@ in rec {
       deduped = mkDerivation {
         name = "dedup.articles.cbor";
         passthru.pathname = "dedup.articles";
-        buildInputs = [processedArticles duplicateMapping];
+        buildInputs = [processedArticles duplicatesTable];
         buildCommand = ''
           mkdir $out
-          ${carTool "trec-car-duplicates-rewrite-table"} -o $out/duplicates.table -d ${duplicateMapping}/duplicates
-          ${carTool "trec-car-rewrite-duplicates"} -o $out/pages.cbor -d ${duplicateMapping}/duplicates ${processedArticles}/pages.cbor
+          ${carTool "trec-car-rewrite-duplicates"} -o $out/pages.cbor -d ${duplicatesTable}/duplicates.table ${processedArticles}/pages.cbor
         '';
       };
     in if runDedup then deduped else processedArticles;
 
+  # 3e. export deduplication data
+  deduplicationPackage = collectSymlinks {
+    name = "deduplication-package";
+    pathname = "deduplication-package";
+    inputs = [duplicatesTable] ++ duplicateMappings;
+  };
+
+
+
+  # ** Paragraph Corpus
   paragraphCorpus = exportParagraphs "paragraph-corpus" dedupArticles;
 
   paragraphCorpusPackage = collectSymlinks {
@@ -524,6 +551,7 @@ in rec {
   # Everything
   test200 = benchmarks "test200" ./test200.titles;
   benchmarkY1 = benchmarks "benchmarkY1" ./benchmarkY1.titles;
+  deduplicationArchive = buildArchive "deduplication" deduplicationPackage;
   all = collectSymlinks {
     pathname = "all";
     name = config.productName;
@@ -539,6 +567,7 @@ in rec {
         trainArchive
         test200
         benchmarkY1
+        deduplicationArchive
       ];
   };
 
