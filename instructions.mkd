@@ -21,6 +21,17 @@ export bin=$path_to_mediawikiannotate_executables
 
 
 
+Build data
+----------
+
+./run.sh all
+
+
+
+------------------------------------------------------
+
+
+
 Download dumps
 --------------
 
