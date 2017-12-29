@@ -207,8 +207,8 @@ in rec {
     buildInputs = [ pkgs.wget ];
     buildCommand = ''
       mkdir $out
-	    wget --directory-prefix $out -nd -c -r --no-parent --accept '*-pages-articles[0-9]*.bz2' ${root_url} || test $? = 8
-	    #wget --directory-prefix $out -nd -c -r --no-parent --accept '*-pages-articles1.*.bz2' ${root_url} || test $? = 8
+      wget --directory-prefix $out -nd -c -r --no-parent --accept '*-pages-articles[0-9]*.bz2' ${root_url} || test $? = 8
+      #wget --directory-prefix $out -nd -c -r --no-parent --accept '*-pages-articles1.*.bz2' ${root_url} || test $? = 8
     '';
   };
 
@@ -279,7 +279,7 @@ in rec {
       buildInputs = map (f: genRawPages "${dumps.out}/${f}") dumpFiles;
       buildCommand = ''
         mkdir $out
-	      ${carTools.cat} -o $out/pages.cbor ${pkgs.lib.concatMapStringsSep " " (f: "${f}/pages.cbor") buildInputs}
+        ${carTools.cat} -o $out/pages.cbor ${pkgs.lib.concatMapStringsSep " " (f: "${f}/pages.cbor") buildInputs}
       '';
     };
 
@@ -361,7 +361,7 @@ in rec {
     buildCommand = ''
       mkdir $out
       export LANG=en_US.UTF-8
-	    ${carTool "trec-car-minhash-duplicates"} --seed ${toString seed} --embeddings ${embedding} -t 0.9 --projections 24 -o $out/duplicates -c $out/bucket-counts ${allParagraphs}/paragraphs.cbor +RTS -N50 -A64M -s -RTS
+      ${carTool "trec-car-minhash-duplicates"} --seed ${toString seed} --embeddings ${embedding} -t 0.9 --projections 24 -o $out/duplicates -c $out/bucket-counts ${allParagraphs}/paragraphs.cbor +RTS -N50 -A64M -s -RTS
     '';
   };
 
@@ -587,7 +587,7 @@ in rec {
         ${carTools.export} ${toc}/pages.cbor --${mode} $out/${output}
       '';
     };
-    
+
   exportParagraphs = name: pagesFile:
     export {
       mode = "paragraphs";
@@ -613,7 +613,7 @@ in rec {
         pagesFile = pagesFile;
       };
 
-  allExports = name: pagesFile: 
+  allExports = name: pagesFile:
       [
         (exportParagraphs "${name}-paragraph" pagesFile)
         (exportOutlines "${name}-outlines" pagesFile)
@@ -624,7 +624,7 @@ in rec {
         (exportQrel "entity-article-qrel"  "article.entity" name pagesFile)
         (exportQrel "entity-toplevel-qrel" "toplevel.entity" name pagesFile)
       ];
-  
+
   exportTitles = pagesFile: mkDerivation {
     name = "export-titles-${pagesFile.name}";
     passthru.pathname = "titles";
@@ -684,7 +684,7 @@ in rec {
       done
     '';
   };
-  
+
   collectSymlinks = { name, inputs, pathname, include ? null }: mkDerivation {
     name = "collect-${name}";
     buildInputs = inputs;
