@@ -315,6 +315,18 @@ in rec {
 
   unprocessedTrain = filterPages "unprocessed-train" articles "(train-set)" "unprocessedTrain.cbor";
 
+  unprocessedTrainPackage = collectSymlinks {
+    name = "unprocessedTrain-package";
+    pathname = "unprocessedTrain.cbor";
+    inputs = [license readme unprocessedTrain];
+  };
+
+  unprocessedAllPackage = collectSymlinks {
+    name = "unprocessedAll-package";
+    pathname = "unprocessedAll.cbor";
+    inputs = [license readme unprocessedAll];
+  };
+
   # 1. Drop non-article pages
   articles =
     filterPages "articles" unprocessedAll "(!is-disambiguation & !is-category)" "articles.cbor";
@@ -455,7 +467,7 @@ in rec {
       in filterPages "${name}-fold-${nStr}" pagesFile "(fold ${nStr})" "fold-${nStr}-${pagesFile.pathname}";
     in builtins.genList fold 5;
 
-  baseTrainFolds = toFolds "base-train" base;
+  baseTrainFolds = toFolds "base-train" baseTrain;
   baseTrainAllFolds = collectSymlinks { name = "base-train-folds"; inputs = baseTrainFolds; pathname = "base-train";};
 
   # Readme
@@ -497,7 +509,10 @@ in rec {
   trainPackage = collectSymlinks {
     name = "train-package";
     pathname = "train-package";
-    inputs = [license readme] ++ lib.concatMap (f: allExports ("train-"+f.name) f) baseTrainFolds;
+    inputs = [license readme baseTrain]
+          ++ allExports ("train") baseTrain
+          ++ baseTrainFolds
+          ++ lib.concatMap (f: allExports ("train-"+f.name) f) baseTrainFolds;
   };
 
   trainArchive = buildArchive "train" trainPackage;
@@ -552,6 +567,9 @@ in rec {
   test200 = benchmarks "test200" ./test200.titles;
   benchmarkY1 = benchmarks "benchmarkY1" ./benchmarkY1.titles;
   deduplicationArchive = buildArchive "deduplication" deduplicationPackage;
+  unprocessedTrainArchive = buildArchive "unprocessedTrain" unprocessedTrainPackage;
+  unprocessedAllArchive = buildArchive "unprocessedAll" unprocessedAllPackage;
+
   all = collectSymlinks {
     pathname = "all";
     name = config.productName;
@@ -563,11 +581,13 @@ in rec {
         (pagesTocFile unprocessedTrain)
         (pagesTocFile unprocessedAll)
         (pagesTocFile redirectedPages)
-        paragraphCorpus
+        paragraphCorpusArchive
         trainArchive
         test200
         benchmarkY1
         deduplicationArchive
+        unprocessedTrainArchive
+        unprocessedAllArchive
       ];
   };
 
