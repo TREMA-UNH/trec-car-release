@@ -8,3 +8,4 @@ nix build -f . -o result-$name $name $@
 touch result-$name
 
 echo "Result written to ./result-$name"
+echo "$(git rev-parse HEAD) $(date) $name" >> ./run.log
