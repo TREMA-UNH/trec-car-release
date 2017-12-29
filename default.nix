@@ -320,7 +320,6 @@ in rec {
   articlesWithToc = pagesTocFile articles;
   laura = collectSymlinks2 {
     name = "laura";
-    pathname = "laura";
     files =
       let
          toc = name: drv: {
