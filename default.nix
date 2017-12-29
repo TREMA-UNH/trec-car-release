@@ -497,7 +497,7 @@ in rec {
   trainPackage = collectSymlinks {
     name = "train-package";
     pathname = "train-package";
-    inputs = [license readme] ++ map (f: allExports ("train-"+f.name) f) baseTrainFolds;
+    inputs = [license readme] ++ lib.concatMap (f: allExports ("train-"+f.name) f) baseTrainFolds;
   };
 
   trainArchive = buildArchive "train" trainPackage;
