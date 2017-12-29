@@ -716,7 +716,7 @@ in rec {
     nativeBuildInputs = [pkgs.gnutar pkgs.xz];
     buildCommand = ''
       mkdir $out
-      tar --dereference -cJf $out/out.tar.xz ${deriv}
+      tar --dereference -cJf $out/out.tar.xz -C ${deriv} --transform 's|^\.|${name}|' .
     '';
   };
 
