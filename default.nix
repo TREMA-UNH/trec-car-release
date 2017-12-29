@@ -382,7 +382,7 @@ in rec {
       mkDerivation {
         name = "duplicates.table";
         passthru.pathname = "duplicates.table";
-        buildInputs = [combinedDuplicateMapping config.duplicates-prev-table];
+        buildInputs = [combinedDuplicateMapping];
         buildCommand = ''
           mkdir $out
           ${carTool "trec-car-duplicates-rewrite-table"} -o $out/duplicates.table -d ${combinedDuplicateMapping}/duplicates --table ${config.duplicates-prev-table}
