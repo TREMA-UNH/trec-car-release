@@ -298,7 +298,7 @@ in rec {
   };
 
   redirectedPages =
-    filterPages "filter-redirects" (fixRedirects contentPages)  "(!is-redirect)" "redirectedPages.cbor";
+    filterPages "filter-redirects" (fixRedirects contentPages)  "(!is-redirect)" "redirected-pages.cbor";
 
   # 0.6: Fill disambiguation and in-link metadata
   fixDisambig = pages: mkDerivation {
@@ -313,17 +313,17 @@ in rec {
 
   unprocessedAll = fixDisambig redirectedPages;
 
-  unprocessedTrain = filterPages "unprocessed-train" articles "(train-set)" "unprocessedTrain.cbor";
+  unprocessedTrain = filterPages "unprocessed-train" articles "(train-set)" "unprocessed.train.cbor";
 
   unprocessedTrainPackage = collectSymlinks {
     name = "unprocessedTrain-package";
-    pathname = "unprocessedTrain.cbor";
+    pathname = "unprocessed.train.cbor";
     inputs = [license readme unprocessedTrain];
   };
 
   unprocessedAllPackage = collectSymlinks {
     name = "unprocessedAll-package";
-    pathname = "unprocessedAll.cbor";
+    pathname = "unprocessed.all.cbor";
     inputs = [license readme unprocessedAll];
   };
 
@@ -433,7 +433,7 @@ in rec {
 
   paragraphCorpusPackage = collectSymlinks {
     name = "paragraphCorpus-package";
-    pathname = "paragraphCorpus.cbor";
+    pathname = "paragraph-corpus.cbor";
     inputs = [license readme paragraphCorpus];
   };
   paragraphCorpusArchive = buildArchive "paragraphCorpus" paragraphCorpusPackage;
