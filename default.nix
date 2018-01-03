@@ -518,9 +518,9 @@ in rec {
   trainArchive = buildArchive "train" trainPackage;
 
   # 9. Build benchmarks
-  benchmarkPackages = name: titleList:
+  benchmarkPackages = basePages: name: titleList:
       let
-        pages = filterPages "filtered-benchmark-${name}" base ''(name-set-from-file "${titleList}")'' "pages.cbor" ;
+        pages = filterPages "filtered-benchmark-${name}" basePages ''(name-set-from-file "${titleList}")'' "pages.cbor" ;
         test  = filterPages "${name}-test.cbor" pages "(test-set)" "test.pages.cbor";
         train = filterPages "${name}-train.cbor" pages "(train-set)" "train.pages.cbor";
         trainFolds = toFolds "${name}-train" train;
@@ -556,16 +556,16 @@ in rec {
              ];
            };
          };
-  benchmarks = name: titleList:
+  benchmarks = basePages: name: titleList:
      collectSymlinks {
        name = "benchmark-${name}";
        pathname = name;
-       inputs = builtins.attrValues (benchmarkPackages name titleList);
+       inputs = builtins.attrValues (benchmarkPackages basePages name titleList);
      };
 
   # Everything
-  test200 = benchmarks "test200" ./test200.titles;
-  benchmarkY1 = benchmarks "benchmarkY1" ./benchmarkY1.titles;
+  test200 = benchmarks base "test200" ./test200.titles;
+  benchmarkY1 = benchmarks base "benchmarkY1" ./benchmarkY1.titles;
   deduplicationArchive = buildArchive "deduplication" deduplicationPackage;
   unprocessedTrainArchive = buildArchive "unprocessedTrain" unprocessedTrainPackage;
   unprocessedAllArchive = buildArchive "unprocessedAll" unprocessedAllPackage;
