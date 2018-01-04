@@ -103,30 +103,32 @@ let
   pkgs = import <nixpkgs> { };
   inherit (pkgs.stdenv) mkDerivation lib;
 
-  carTool = name: "${bin}/${name}";
-  #carTool = name: mkDerivation {
-  #  name = "car-tool-${name}";
-  #  inputs = [ (builtins.toPath "${bin}/${name}") ];
-  #  buildCommand = ''
-  #    mkdir $out
-  #    cp ${bin}/${name} $out/exe
-  #  '';
-  #};
-
-  #trec_car_build_toc = builtins.toPath "${bin}/trec-car-build-toc";
-  carTools = {
-    build_toc = carTool "trec-car-build-toc";
-    filter = carTool "trec-car-filter";
-    export = carTool "trec-car-export";
-    _import = carTool "trec-car-import";
-    cat    = carTool "trec-car-cat";
-    dump   = carTool "trec-car-dump";
-    fill_metadata    = carTool "trec-car-fill-metadata";
-    transform_content = carTool "trec-car-transform-content";
+  carToolNames = {
+    build_toc         = "trec-car-build-toc";
+    filter            = "trec-car-filter";
+    export            = "trec-car-export";
+    _import           = "trec-car-import";
+    cat               = "trec-car-cat";
+    dump              = "trec-car-dump";
+    fill_metadata     = "trec-car-fill-metadata";
+    transform_content = "trec-car-transform-content";
   };
+  carTool = name:
+    let
+      drv = mkDerivation {
+        name = "car-tool-${name}";
+        buildCommand = ''
+          mkdir $out
+          echo -n $(readlink ${link}) > $out/target
+        '';
+      };
+      link = ./car-tools + "/${name}";
+    in builtins.unsafeDiscardStringContext (builtins.readFile "${drv}/target");
+  carTools = lib.mapAttrs (_: carTool) carToolNames;
 
 in rec {
-  inherit carTools;
+  inherit carTools lib;
+  carToolFiles = lib.concatStringsSep "\n" (lib.attrValues carToolNames);
 
   lang_filter_opts = "--lang-index=${langIndex}/lang-index.cbor --from-site=${config.wiki_name}";
 
