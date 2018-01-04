@@ -560,6 +560,7 @@ in rec {
   deduplicationArchive = buildArchive "deduplication" deduplicationPackage;
   unprocessedTrainArchive = buildArchive "unprocessedTrain" unprocessedTrainPackage;
   unprocessedAllArchive = buildArchive "unprocessedAll" unprocessedAllPackage;
+  unprocessedTrainToc = pagesTocFile unprocessedTrain;
 
   all = collectSymlinks {
     pathname = "all";
