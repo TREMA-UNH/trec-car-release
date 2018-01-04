@@ -707,7 +707,7 @@ in rec {
           ''
             nfiles=$(ls ${input} | wc -l)
             if [[ $nfiles == 1 ]]; then
-              ln -s $(ls ${input}/*) $out/${input.pathname}
+              ln -s $(ls -d ${input}/*) $out/${input.pathname}
             elif [[ $nfiles > 1 ]]; then
               mkdir -p $out/${input.pathname}
               ln -s ${input}/* $out/${input.pathname}
