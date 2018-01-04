@@ -113,17 +113,7 @@ let
     fill_metadata     = "trec-car-fill-metadata";
     transform_content = "trec-car-transform-content";
   };
-  carTool = name:
-    let
-      drv = mkDerivation {
-        name = "car-tool-${name}";
-        buildCommand = ''
-          mkdir $out
-          echo -n $(readlink ${link}) > $out/target
-        '';
-      };
-      link = ./car-tools + "/${name}";
-    in builtins.unsafeDiscardStringContext (builtins.readFile "${drv}/target");
+  carTool = name: ./car-tools + "/${name}";
   carTools = lib.mapAttrs (_: carTool) carToolNames;
 
 in rec {
