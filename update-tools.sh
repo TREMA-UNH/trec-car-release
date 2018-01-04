@@ -11,3 +11,6 @@ for tool in $tools; do
     ln -s $(realpath car-tools)/$tool.$version car-tools/$tool
     echo "$tool    $version"
 done
+
+git -C $bin rev-parse HEAD > tools-commit
+git -C $bin remote get-url origin > tools-remote

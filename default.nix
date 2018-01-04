@@ -98,7 +98,6 @@ let
 
   root_url = "${config.mirror_url}${config.wiki_name}/${globalConfig.dump_date}";
   out_dir = "output/${config.productName}";
-  bin = /home/ben/trec-car/mediawiki-annotate-release/bin;
 
   pkgs = import <nixpkgs> { };
   inherit (pkgs.stdenv) mkDerivation lib;
@@ -479,7 +478,7 @@ in rec {
           under the Creative Commons Attribution-ShareAlike 3.0 Unported
           License.
 
-          mediawiki-annotate: `git -C ${bin} rev-parse HEAD)` in git repos `git -C ${bin} remote get-url origin`
+          mediawiki-annotate: ${builtins.readFile ./car-tools/tools-commit} in git repos ${builtins.readFile ./car-tools/tools-remote}
           build system: `git -C . rev-parse HEAD)` in git repos `git -C . remote get-url origin`
         '';
       in ''
