@@ -7,7 +7,7 @@ output="results/result-$name-$(date -Iseconds)"
 nix build -f . -o $output $name --option cores 8 --option max-jobs 16 $@
 
 # Set mtime
-rm result-$name
+rm -f result-$name
 ln -s $output result-$name
 touch result-$name $output
 find $output | xargs touch
