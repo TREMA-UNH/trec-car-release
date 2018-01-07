@@ -1,6 +1,8 @@
-#!/usr/bin/env
+#!/usr/bin/env bash
 
-bin=/home/ben/trec-car/mediawiki-annotate-release/bin
+#bin=/home/ben/trec-car/mediawiki-annotate-release/bin
+if [ -z "$bin" ]; then echo "\$bin not set"; exit 1; done
+
 tools=$(nix eval --raw -f . carToolFiles)
 
 mkdir -p car-tools
