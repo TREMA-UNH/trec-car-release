@@ -8,7 +8,7 @@ nix build -f . -o $output $name --option cores 8 --option max-jobs 16 $@
 
 # Set mtime
 rm -f result-$name
-ln -s $output result-$name
+ln -s `pwd`/$output result-$name
 touch result-$name $output
 find $output | xargs touch
 chmod -R 755  $output
