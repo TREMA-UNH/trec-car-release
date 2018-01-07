@@ -14,4 +14,4 @@ find $output | xargs touch
 chmod -R 755  $output
 
 echo "Result written to ./result-$name"
-echo "$(git rev-parse HEAD) $(date) $name" >> results/run.log
+echo "$(git rev-parse HEAD) $(date): $name $@" >> results/run.log
