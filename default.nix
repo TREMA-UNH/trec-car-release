@@ -31,7 +31,7 @@ let
   };
 
   globalConfig = rec {
-    version = "v1.6";
+    version = "v2.0";
     dump_date = "20161220";
     lang_index = "lang-index";
     prefixMustPreds = ''
@@ -304,6 +304,7 @@ in rec {
 
   unprocessedAll = fixDisambig redirectedPages;
 
+  # todo: fix order of definition (articles is defined below)
   unprocessedTrain = filterPages "unprocessed-train" articles "(train-set)" "unprocessedTrain.cbor";
 
   unprocessedTrainPackage = collectSymlinks {
@@ -317,6 +318,24 @@ in rec {
     pathname = "unprocessedAll.cbor";
     inputs = [license readme unprocessedAll];
   };
+
+  unprocessedAllButBenchmark = filterPages "allbutbenchmark" articles "((! name-set-from-file ./test200.titles) & (! name-set-from-file ./benchmarkY1.titles))" "unprocessedAllButBenchmark.cbor";
+  
+  unprocessedAllButBenchmarkPackage = collectSymlinks {
+    name = "unprocessedAllButBenchmark.cbor";
+    pathname = "unprocessedAllButBenchmark.cbor";
+    inputs = [license readme unprocessedAllButBenchmark] ++ (toFolds "unprocessedAllButBenchmark" unprocessedAllButBenchmark);
+  };
+
+  unprocessedPackage = collectSymlinks {
+    name = "unprocessedPackage";
+    pathname = "unprocessedPackage";
+    inputs = [(buildArchive "unprocessedAllButBenchmark" unprocessedAllButBenchmarkPackage)
+              (buildArchive "unprocessedTrain" unprocessedTrainPackage)
+              (buildArchive "unprocessedAll" unprocessedAllPackage)
+             ];
+  };
+
 
   # 1. Drop non-article pages
   articles =
@@ -696,6 +715,15 @@ in rec {
       done
     '';
   };
+
+  impureFile = file: type: mkDerivation {
+    name = "impure-${type}-${baseNameOf file}";
+    src = [file];
+    buildCommand = ''
+      mkdir $out
+      cp -L ${file} $out/${type}
+    '';
+   };
 
   collectSymlinks = { name, inputs, pathname, include ? null }: mkDerivation {
     name = "collect-${name}";
