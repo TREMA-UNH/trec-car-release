@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-export NIX_PATH=/home/ben/
+export NIX_PATH=./
 
 name=$1
 shift

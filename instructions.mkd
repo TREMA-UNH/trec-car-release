@@ -1,6 +1,16 @@
 Required tools and libraries
 -----------------------------
 jq  (json processing)
+nix
+
+Setting up nix:
+
+```
+ git clone git://github.com/nixos/nixpkgs
+ nix-env -i -f ./nixpkgs -A nixUnstable
+ export NIX_PATH=.
+```
+
 
 
 Create new release directory
@@ -25,12 +35,42 @@ export bin=$path_to_mediawikiannotate_executables
 ```
 
 
+Hash latest tools version for nix' auto-rebuild to work right
+```
+./update-tools.sh 
+```
+
+
 
 Build data
 ----------
 
 ./run.sh all
 
+your links to your results will be collected in  `result-all`
+
+
+
+Save built data and clean up
+-----------------------------
+
+
+When data is built, it still resides inside the nix store. We recommend to archive it once done and clean the nix store.
+
+copy data out of result directory using "-L" to dereference softlinks
+```
+rsync -L result-all $yourTargetDir
+```
+
+nix tracks which files can be purged from its store through softlinks. Only when the last link (created through nix) is deleted, it will remove the build products. Until then it slowly eats up all hard drive space.
+
+Delete target directories of this (and previous failed attempts) in results/...-$date
+
+call the garbage collector of nix
+
+```
+nix-gc
+```
 
 
 ------------------------------------------------------

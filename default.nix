@@ -111,9 +111,11 @@ let
     dump              = "trec-car-dump";
     fill_metadata     = "trec-car-fill-metadata";
     transform_content = "trec-car-transform-content";
+    multilang_car_index = "multilang-car-index";
   };
   carTool = name: ./car-tools + "/${name}";
   carTools = lib.mapAttrs (_: carTool) carToolNames;
+
 
 in rec {
   inherit carTools lib;
@@ -246,7 +248,7 @@ in rec {
     buildCommand = ''
       mkdir $out
       cd $out
-      bzcat $src | ${carTool "multilang-car-index"}
+      bzcat $src | ${carTools.multilang_car_index}
       mv out lang-index.cbor
     '';
   };
