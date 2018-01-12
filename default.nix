@@ -112,6 +112,9 @@ let
     fill_metadata     = "trec-car-fill-metadata";
     transform_content = "trec-car-transform-content";
     multilang_car_index = "multilang-car-index";
+    trec-car-minhash-duplicates = "trec-car-minhash-duplicates";
+    trec-car-rewrite-duplicates = "trec-car-rewrite-duplicates";
+    trec-car-duplicates-rewrite-table = "trec-car-duplicates-rewrite-table";
   };
   carTool = name: ./car-tools + "/${name}";
   carTools = lib.mapAttrs (_: carTool) carToolNames;
@@ -385,7 +388,7 @@ in rec {
     buildCommand = ''
       mkdir $out
       export LANG=en_US.UTF-8
-	    ${carTool "trec-car-minhash-duplicates"} --seed ${toString seed} --embeddings ${embedding} -t 0.9 --projections 24 -o $out/duplicates -c $out/bucket-counts ${allParagraphs}/paragraphs.cbor +RTS -N50 -A64M -s -RTS
+	    ${carTools.trec-car-minhash-duplicates} --seed ${toString seed} --embeddings ${embedding} -t 0.9 --projections 24 -o $out/duplicates -c $out/bucket-counts ${allParagraphs}/paragraphs.cbor +RTS -N50 -A64M -s -RTS
     '';
   };
 
@@ -409,7 +412,7 @@ in rec {
         buildInputs = [combinedDuplicateMapping];
         buildCommand = ''
           mkdir $out
-          ${carTool "trec-car-duplicates-rewrite-table"} -o $out/duplicates.table -d ${combinedDuplicateMapping}/duplicates --table ${config.duplicates-prev-table}
+          ${carTools.trec-car-duplicates-rewrite-table} -o $out/duplicates.table -d ${combinedDuplicateMapping}/duplicates --table ${config.duplicates-prev-table}
         '';
       };
 
@@ -426,7 +429,7 @@ in rec {
         buildInputs = [processedArticles duplicatesTable];
         buildCommand = ''
           mkdir $out
-          ${carTool "trec-car-rewrite-duplicates"} -o $out/pages.cbor -d ${duplicatesTable}/duplicates.table ${processedArticles}/pages.cbor
+          ${carTools.trec-car-rewrite-duplicates} -o $out/pages.cbor -d ${duplicatesTable}/duplicates.table ${processedArticles}/pages.cbor
         '';
       };
     in if runDedup then deduped else processedArticles;
