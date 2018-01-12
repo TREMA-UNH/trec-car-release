@@ -319,7 +319,9 @@ in rec {
     inputs = [license readme unprocessedAll];
   };
 
-  unprocessedAllButBenchmark = filterPages "allbutbenchmark" articles "((! name-set-from-file ./test200.titles) & (! name-set-from-file ./benchmarkY1.titles))" "unprocessedAllButBenchmark.cbor";
+  test200Titles = ./test200.titles;
+  benchmarkY1Titles = ./benchmarkY1.titles;
+  unprocessedAllButBenchmark = filterPages "allbutbenchmark" articles "((! name-set-from-file \"${test200Titles}\") & (! name-set-from-file \"${benchmarkY1Titles}\"))" "unprocessedAllButBenchmark.cbor";
   
   unprocessedAllButBenchmarkPackage = collectSymlinks {
     name = "unprocessedAllButBenchmark.cbor";
