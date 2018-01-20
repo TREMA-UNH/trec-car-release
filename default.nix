@@ -324,7 +324,10 @@ in rec {
     inputs = [license readme unprocessedAll];
   };
 
-  unprocessedAllButBenchmark = filterPages "allbutbenchmark" articles "((! name-set-from-file ./test200.titles) & (! name-set-from-file ./benchmarkY1.titles))" "unprocessedAllButBenchmark.cbor";
+
+  test200titles=./test200.titles;
+  benchmarkY1titles=./benchmarkY1.titles;
+  unprocessedAllButBenchmark = filterPages "allbutbenchmark" articles "((! name-set-from-file \"${test200titles}\") & (! name-set-from-file \"${benchmarkY1titles}\"))" "unprocessedAllButBenchmark.cbor";
   
   unprocessedAllButBenchmarkPackage = collectSymlinks {
     name = "unprocessedAllButBenchmark.cbor";
@@ -604,6 +607,7 @@ in rec {
         deduplicationArchive
         unprocessedTrainArchive
         unprocessedAllArchive
+        unprocessedAllButBenchmarkPackage
       ];
   };
 
