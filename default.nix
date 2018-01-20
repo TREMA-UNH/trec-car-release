@@ -459,7 +459,7 @@ in rec {
       preds = '' (!(${globalConfig.prefixMustPreds}) & !(${globalConfig.prefixMaybePreds}) & !is-redirect & !is-disambiguation & !(${globalConfig.categoryPreds})) '';
     in filterPages "filtered.cbor" dedupArticles preds "filtered.cbor";
 
-  # 4. Drop lead, images, long/short sections, articles with <3 sections
+  # 4. Drop, images, long/short sections, articles with <3 sections --(dont drop lead anymore!!)
   base =
     mkDerivation {
       name = "base.cbor";
@@ -467,7 +467,7 @@ in rec {
       passthru.pathname = "base.cbor";
       buildCommand = ''
         mkdir $out
-        ${carTools.transform_content} ${config.forbiddenHeadings} ${filtered}/pages.cbor -o $out/pages.cbor
+        ${carTools.transform_content} ${config.forbiddenHeadings} ${filtered}/pages.cbor --lead -o $out/pages.cbor
       '';
     };
 
