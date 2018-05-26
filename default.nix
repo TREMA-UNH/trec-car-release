@@ -3,7 +3,7 @@ let
     productName = "trec-car";
     lang = "en";
     wiki_name = "${lang}wiki";
-    mirror_url = http://dumps.wikimedia.your.org/;
+    mirror_url = "https://archive.org/download/"; 
     import_config = ./config.en.yaml;
     # if lost, ressurect from here: jelly:/mnt/grapes/datasets/trec-car/duplicates.v1.5-table.xz
     duplicates-prev-table = /home/ben/trec-car/data/enwiki-20161220/release-v1.5/articles.dedup.cbor.duplicates.table;
@@ -32,7 +32,7 @@ let
 
   globalConfig = rec {
     version = "v2.0";
-    dump_date = "20161220";
+    dump_date = "20170820";
     lang_index = "lang-index";
     prefixMustPreds = ''
       name-has-prefix "Category talk:" |
@@ -161,14 +161,14 @@ in rec {
     '';
   };
 
-  dumps = dumpsLocal;
+  dumps = dumpsDownloaded; #dumpsLocal;
 
   dumpsLocal = mkDerivation {
     name = "dump-local";
     passthru.pathname = "dump-local";
     buildCommand = ''
       mkdir $out
-      ln -s /home/ben/trec-car/data/enwiki-20161220/*.bz2 $out
+      ln -s /home/ben/trec-car/data/enwiki-20170820/*.bz2 $out
     '';
   };
 
