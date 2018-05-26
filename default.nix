@@ -588,6 +588,11 @@ in rec {
   unprocessedTrainArchive = buildArchive "unprocessedTrain" unprocessedTrainPackage;
   unprocessedAllArchive = buildArchive "unprocessedAll" unprocessedAllPackage;
   unprocessedTrainToc = pagesTocFile unprocessedTrain;
+  test200Archive = buildArchive "test200" (benchmarkPackages base "test200" ./test200.titles).trainPackage;
+  benchmarkY1trainArchive = buildArchive "benchmarkY1train" (benchmarkPackages base "benchmarkY1" ./benchmarkY1.titles).trainPackage;
+  benchmarkY1testArchive = buildArchive "benchmarkY1test" (benchmarkPackages base "benchmarkY1" ./benchmarkY1.titles).testPackage;
+  benchmarkY1testPublicArchive = buildArchive "benchmarkY1test.public" (benchmarkPackages base "benchmarkY1" ./benchmarkY1.titles).testPublicPackage;
+
 
   all = collectSymlinks {
     pathname = "all";
@@ -604,6 +609,10 @@ in rec {
         trainArchive
         test200
         benchmarkY1
+        test200Archive
+        benchmarkY1trainArchive
+        benchmarkY1testArchive
+        benchmarkY1testPublicArchive
         deduplicationArchive
         unprocessedTrainArchive
         unprocessedAllArchive
@@ -765,7 +774,10 @@ in rec {
     nativeBuildInputs = [pkgs.gnutar pkgs.xz];
     buildCommand = ''
       mkdir $out
-      tar --dereference -cJf $out/out.tar.xz -C ${deriv} --transform 's|^\.|${name}|' .
+      mkdir ${name}
+      cp -rs ${deriv} ${name}
+      find -type d | xargs chmod ug+wx
+      tar --dereference -cJf $out/out.tar.xz ${name}
     '';
   };
 
