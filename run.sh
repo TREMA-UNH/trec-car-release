@@ -9,8 +9,9 @@ mkdir -p results
 start_time=$(date)
 output="results/result-$name-$(date -Iseconds)"
 
+# $max-jobs is number of jobs run in parallel, each job can use $cores many cpus
 #nix-build . -A $name -o $output  --option cores 1 --option max-jobs 1 $@
-nix build -f . -o $output $name --option cores 8 --option max-jobs 16 $@
+nix build -f . -o $output $name --option cores 2 --option max-jobs 8 $@
 
 # Set mtime
 rm -f result-$name

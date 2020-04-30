@@ -31,8 +31,8 @@ let
   };
 
   globalConfig = rec {
-    version = "v2.0";
-    dump_date = "20161220";
+    version = "v2.4";
+    dump_date = "20200101";
     lang_index = "lang-index";
     prefixMustPreds = ''
       name-has-prefix "Category talk:" |
@@ -124,7 +124,8 @@ in rec {
   inherit carTools lib;
   carToolFiles = lib.concatStringsSep "\n" (lib.attrValues carToolNames);
 
-  lang_filter_opts = "--lang-index=${langIndex}/lang-index.cbor --from-site=${config.wiki_name}";
+#  lang_filter_opts = "--lang-index=${langIndex}/lang-index.cbor --from-site=${config.wiki_name}";
+lang_filter_opts = " ";
 
   # TOC file generation
 
@@ -161,7 +162,7 @@ in rec {
     '';
   };
 
-  dumps = dumpsLocal;
+  dumps = dumpsDownloaded;
 
   dumpsLocal = mkDerivation {
     name = "dump-local";
