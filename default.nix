@@ -31,7 +31,7 @@ let
   };
 
   globalConfig = rec {
-    version = "v2.4";
+    version = "v2.4.1";
     dump_date = "20200101";
     lang_index = "lang-index";
     prefixMustPreds = ''
