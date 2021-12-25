@@ -3,7 +3,7 @@
 #bin=/home/ben/trec-car/mediawiki-annotate-release/bin
 if [ -z "$bin" ]; then echo "\$bin not set"; exit 1; fi
 
-tools=$(nix eval --raw -f . carToolFiles)
+tools=$(nix eval --extra-experimental-features nix-command --raw -f . carToolFiles)
 
 mkdir -p car-tools
 for tool in $tools; do
@@ -14,5 +14,5 @@ for tool in $tools; do
     echo "$tool    $version"
 done
 
-git -C $bin rev-parse HEAD > car-tools/tools-commit
-git -C $bin remote get-url origin > car-tools/tools-remote
+git -C $bingit rev-parse HEAD > car-tools/tools-commit
+git -C $bingit remote get-url origin > car-tools/tools-remote
