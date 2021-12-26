@@ -639,7 +639,7 @@ in rec {
     buildCommand = ''
       mkdir $out
       export LANG=en_US.UTF-8
-      ${carTools.dump} sections --raw ${pagesFile}/pages.cbor > $out/topics
+      ${carTools.dump} section-ids --raw ${pagesFile}/pages.cbor > $out/topics
     '';
   };
 
