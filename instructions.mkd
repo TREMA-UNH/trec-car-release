@@ -25,13 +25,18 @@ cd release-v$ver
 Configure
 ---------
 
-Edit `global-config.mk` to reflect path to `mediawiki-annotate` tools and
-version number of release.  --- FixMe: the config file does not include path to mediawiki-annotate tools
+// ignore this, it is out of date.
+
+// Edit `global-config.mk` to reflect path to `mediawiki-annotate` tools and
+//version number of release.  --- FixMe: the config file does not include path to mediawiki-annotate tools
+
+Using $bingit as directory where mediawiki-annotate was cloned into
 
 Set default configuration,
 ```
 export CONFIG=trec-car
-export bin=$path_to_mediawikiannotate_executables
+export bingit=$bingit
+export bin=$path_to_mediawikiannotate_executables // suggestion: $bingit/car-bin/bin
 ```
 
 
@@ -40,6 +45,13 @@ Hash latest tools version for nix' auto-rebuild to work right
 ./update-tools.sh 
 ```
 
+
+Edit `default.nix` to adjust attributes
+
+* `config.lang = "en"`
+* `import_config = ./config.en.yaml`
+* `globalConfig.version = "v2.4.2"`
+* `globalConfig.dump_date = "20211222"`  // yyyymmdd
 
 
 Build data
@@ -74,7 +86,7 @@ nix-gc
 
 
 ------------------------------------------------------
-
+Ignore this is out of date. We don't use make anymore
 
 
 Download dumps

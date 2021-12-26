@@ -31,8 +31,8 @@ let
   };
 
   globalConfig = rec {
-    version = "v2.4.1";
-    dump_date = "20200101";
+    version = "v2.4.2";
+    dump_date = "20211220";
     lang_index = "lang-index";
     prefixMustPreds = ''
       name-has-prefix "Category talk:" |
@@ -96,11 +96,11 @@ let
     '';
   };
 
-  root_url = "${config.mirror_url}${config.wiki_name}/${globalConfig.dump_date}";
   out_dir = "output/${config.productName}";
 
   pkgs = import <nixpkgs> { };
-  inherit (pkgs.stdenv) mkDerivation lib;
+  inherit (pkgs) lib;
+  inherit (pkgs.stdenv) mkDerivation;
 
   carToolNames = {
     build_toc         = "trec-car-build-toc";
@@ -124,11 +124,10 @@ in rec {
   inherit carTools lib;
   carToolFiles = lib.concatStringsSep "\n" (lib.attrValues carToolNames);
 
-#  lang_filter_opts = "--lang-index=${langIndex}/lang-index.cbor --from-site=${config.wiki_name}";
-lang_filter_opts = " ";
+  #lang_filter_opts = "--lang-index=${langIndex}/lang-index.cbor --from-site=${config.wiki_name}";
+  lang_filter_opts = " ";
 
   # TOC file generation
-
   pagesTocFile = pagesFile: mkDerivation rec {
     name = "${pagesFile.name}.toc";
     passthru.pathname = name;
@@ -137,6 +136,9 @@ lang_filter_opts = " ";
       mkdir $out
       ln -s ${pagesFile}/pages.cbor $out/
       ${carTools.build_toc} pages $out/pages.cbor
+      ${carTools.build_toc} page-names $out/pages.cbor
+      ${carTools.build_toc} page-redirects $out/pages.cbor
+
     '';
   };
 
@@ -147,67 +149,8 @@ lang_filter_opts = " ";
     buildCommand = '' ${carTools.build_toc} paragraphs ${parasFile} > $out '';
   };
 
-  # Dump file preparation
-  dumpStatus = mkDerivation rec {
-    name = "dump-${config.wiki_name}-${globalConfig.dump_date}-status";
-    passthru.pathname = name;
-    src = pkgs.fetchurl {
-      name = "dumpstatus.json";
-      url = "${root_url}/dumpstatus.json";
-      sha256 = null;
-    };
-    buildCommand = ''
-      mkdir $out
-      cp $src $out/dumpstatus.json
-    '';
-  };
-
-  dumps = dumpsDownloaded;
-
-  dumpsLocal = mkDerivation {
-    name = "dump-local";
-    passthru.pathname = "dump-local";
-    buildCommand = ''
-      mkdir $out
-      ln -s /home/ben/trec-car/data/enwiki-20161220/*.bz2 $out
-    '';
-  };
-
-  dumpsDownloaded = collectSymlinks rec {
-    name = "dump-${config.wiki_name}-${globalConfig.dump_date}";
-    pathname = name;
-    inputs =
-      let
-        download = name: meta:
-          let
-            drvName = "dump-${config.wiki_name}-${globalConfig.dump_date}-${name}";
-          in mkDerivation {
-              name = drvName;
-              passthru.pathname = drvName;
-              src = pkgs.fetchurl {
-                name = name;
-                url = "${config.mirror_url}${meta.url}";
-                sha1 = meta.sha1;
-              };
-              buildCommand = ''
-                mkdir $out
-                cp $src $out
-              '';
-            };
-        metadata = builtins.fromJSON (builtins.readFile "${dumpStatus}/dumpstatus.json");
-      in pkgs.lib.mapAttrsToList download metadata.jobs.articlesdump.files;
-  };
-
-  dumpsOld = mkDerivation rec {
-    name = "dump-${config.wiki_name}-${globalConfig.dump_date}";
-    passthru.pathname = name;
-    buildInputs = [ pkgs.wget ];
-    buildCommand = ''
-      mkdir $out
-	    wget --directory-prefix $out -nd -c -r --no-parent --accept '*-pages-articles[0-9]*.bz2' ${root_url} || test $? = 8
-	    #wget --directory-prefix $out -nd -c -r --no-parent --accept '*-pages-articles1.*.bz2' ${root_url} || test $? = 8
-    '';
-  };
+  dumps = (pkgs.callPackage ./wikimedia-dump.nix { inherit config globalConfig collectSymlinks; }).dumpsDownloadedTest;
+  #dumps = (pkgs.callPackage ./wikimedia-dump.nix { inherit config globalConfig collectSymlinks; }).dumpsDownloaded;
 
   # GloVe embeddings
   glove = mkDerivation {
@@ -388,11 +331,12 @@ lang_filter_opts = " ";
   oneDuplicateMapping = seed: mkDerivation {
     name = "duplicate-mapping-${toString seed}";
     passthru.pathname = "duplicate-mapping-${toString seed}.duplicates";
+    nativeBuildInputs = [ pkgs.glibcLocales ];
     buildInputs = [allParagraphs];
     buildCommand = ''
       mkdir $out
       export LANG=en_US.UTF-8
-	    ${carTools.trec-car-minhash-duplicates} --seed ${toString seed} --embeddings ${embedding} -t 0.9 --projections 24 -o $out/duplicates -c $out/bucket-counts ${allParagraphs}/paragraphs.cbor +RTS -N50 -A64M -s -RTS
+	  ${carTools.trec-car-minhash-duplicates} --seed ${toString seed} --embeddings ${embedding} -t 0.9 --projections 24 -o $out/duplicates -c $out/bucket-counts ${allParagraphs}/paragraphs.cbor +RTS -N50 -A64M -s -RTS
     '';
   };
 
@@ -678,6 +622,7 @@ lang_filter_opts = " ";
   exportTitles = pagesFile: mkDerivation {
     name = "export-titles-${pagesFile.name}";
     passthru.pathname = "titles";
+    nativeBuildInputs = [ pkgs.glibcLocales ];
     buildInputs = [pagesFile];
     buildCommand = ''
       mkdir $out
@@ -689,6 +634,7 @@ lang_filter_opts = " ";
   exportTopics = pagesFile: mkDerivation {
     name = "export-topics-${pagesFile.name}";
     passthru.pathname = "topics";
+    nativeBuildInputs = [ pkgs.glibcLocales ];
     buildInputs = [pagesFile];
     buildCommand = ''
       mkdir $out
@@ -700,6 +646,7 @@ lang_filter_opts = " ";
   filterPages = name: pagesFile: pred: pathname: mkDerivation {
     name = "filter-${name}";
     passthru.pathname = pathname;
+    nativeBuildInputs = [ pkgs.glibcLocales ];
     buildInputs = [ pagesFile ];
     buildCommand = ''
       mkdir $out
