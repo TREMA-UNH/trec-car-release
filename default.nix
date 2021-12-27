@@ -1,30 +1,30 @@
 let
   config = rec {
     productName = "trec-car";
-    lang = "en";
+    lang = "ja";
     wiki_name = "${lang}wiki";
     mirror_url = http://dumps.wikimedia.your.org/;
     import_config = ./config.en.yaml;
     # if lost, ressurect from here: jelly:/mnt/grapes/datasets/trec-car/duplicates.v1.5-table.xz
-    duplicates-prev-table = /home/ben/trec-car/data/enwiki-20161220/release-v1.5/articles.dedup.cbor.duplicates.table;
+    # duplicates-prev-table = /home/ben/trec-car/data/enwiki-20161220/release-v1.5/articles.dedup.cbor.duplicates.table;
 
     forbiddenHeadings = pkgs.lib.concatMapStringsSep " " (s: "--forbidden '${s}'") [
-      "see also"
-      "references"
-      "external links"
-      "notes"
-      "bibliography"
-      "gallery"
-      "publications"
-      "further reading"
-      "track listing"
-      "sources"
-      "cast"
-      "discography"
-      "awards"
-      "other"
-      "external links and references"
-      "notes and references"
+#      "see also"
+#      "references"
+#      "external links"
+#      "notes"
+#      "bibliography"
+#      "gallery"
+#      "publications"
+#      "further reading"
+#      "track listing"
+#      "sources"
+#      "cast"
+#      "discography"
+#      "awards"
+#      "other"
+#      "external links and references"
+#      "notes and references"
     ];
 
     transformArticle = "${forbiddenHeadings}";
@@ -565,6 +565,19 @@ in rec {
       ];
   };
 
+
+  dump = collectSymlinks {
+    pathname = "dump";
+    name = "dump-${config.productName}";
+    inputs =
+      [] #builtins.attrValues carTools
+      ++ [
+        (pagesTocFile rawPages)
+        (pagesTocFile articles)
+        (pagesTocFile unprocessedAll)
+        unprocessedAllArchive
+      ];
+    };
 
   ##########################################################
   # TREC CAR   template derivations
