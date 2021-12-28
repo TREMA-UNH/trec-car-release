@@ -1,8 +1,8 @@
-{ dumpTest ? false }:
+{ configFile ? ./config.en.nix, dumpTest ? false }:
 
 let
-  config = (import ./config.en.nix).config;
-  globalConfig = (import ./config.en.nix).globalConfig;
+  config = (import configFile).config;
+  globalConfig = (import configFile).globalConfig;
 
   out_dir = "output/${config.productName}";
 
