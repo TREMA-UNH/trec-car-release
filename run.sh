@@ -1,8 +1,5 @@
 #!/bin/bash -e
 
-export NIX_PATH=/home/ben
-
-
 name=$1
 shift
 mkdir -p results

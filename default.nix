@@ -1,14 +1,15 @@
 { configFile ? ./config.en.nix, dumpTest ? false, deduplicate ? true }:
 
 let
+  sources = import ./nix/sources.nix;
+  pkgs = import sources.nixpkgs { };
+  inherit (pkgs) lib;
+  inherit (pkgs.stdenv) mkDerivation;
+
   config = (import configFile { inherit pkgs; }).config;
   globalConfig = (import configFile { inherit pkgs; }).globalConfig;
 
   out_dir = "output/${config.productName}";
-
-  pkgs = import <nixpkgs> { };
-  inherit (pkgs) lib;
-  inherit (pkgs.stdenv) mkDerivation;
 
   carToolNames = {
     build_toc         = "trec-car-build-toc";
