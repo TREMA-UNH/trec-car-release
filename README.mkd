@@ -1,0 +1,98 @@
+Required tools and libraries
+-----------------------------
+
+Download and install nix from <https://nixos.org/download.html>   (install nix, not nixOs)
+
+Get the trec-car-create code from <https://github.com/TREMA-UNH/trec-car-create/> and build with `nix build -A binaries -o car-bin`
+
+
+Create new release directory
+----------------------------
+
+```
+lang=en
+ver=1.6
+git clone git@github.com:TREMA-UNH/trec-car-release.git release-v$lang$ver
+cd release-v$lang$ver
+```
+
+Configure
+---------
+
+Using $bingit as directory where trec-car-create code was cloned into
+
+Set default configuration,
+```
+export bingit=$bingit
+export bin=$bingit/car-tools/bin  // or the directory in which car binaries are in
+```
+
+
+Hash latest tools version for nix' auto-rebuild by calling
+```
+./update-tools.sh 
+```
+
+
+Edit `default.nix` to adjust attributes
+
+* `config.lang = "en"`
+* `import_config = ./config.en.yaml`
+* `globalConfig.version = "v2.4.2"`
+* `globalConfig.dump_date = "20211222"`  // yyyymmdd
+
+if you are using a language that does not have an existing `config.$lang.yaml`, please create a matching language configuration based on our examples
+
+
+Build dump
+----------
+
+To  create just a dump call
+
+`./run.sh dump`
+
+your results will be collected in `result-dump`
+
+
+Build full data set
+-------------------
+
+To create a dump with filtering, deduplication, outlines, paragraph corpus, and automatic ground trruth, call
+
+`./run.sh all`
+
+your links to your results will be collected in  `result-all`
+
+
+We recommend you first build a dump, then rerun with `all`. The dump will be automatically reused.
+
+
+
+Save built data and clean up
+-----------------------------
+
+
+When data is built, it still resides inside the nix store. We recommend to archive it once done and clean the nix store.
+
+copy data out of result directory using "-L" to dereference softlinks
+```
+rsync -L result-all $yourTargetDir
+```
+
+nix tracks which files can be purged from its store through softlinks. Only when the last link (created through nix) is deleted, it will remove the build products. Until then it slowly eats up all hard drive space.
+
+Delete target directories of this (and previous failed attempts) in results/...-$date
+
+call the garbage collector of nix
+
+```
+nix-gc
+```
+
+
+UNH only: Upload data to trec-car.cs.unh.edu
+---------------------------------------------
+rsync -a *v?.?*zip lava:trec-car/public_html/datareleases
+
+
+
