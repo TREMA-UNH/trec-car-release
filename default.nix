@@ -538,7 +538,19 @@ in rec {
   benchmarkY1testArchive = buildArchive "benchmarkY1test" (benchmarkPackages base "benchmarkY1" ./benchmarkY1.titles).testPackage;
   benchmarkY1testPublicArchive = buildArchive "benchmarkY1test.public" (benchmarkPackages base "benchmarkY1" ./benchmarkY1.titles).testPublicPackage;
 
-
+  dump = collectSymlinks {
+    pathname = "dump";
+    name = "dump-${config.productName}";
+    inputs =
+      [] #builtins.attrValues carTools
+      ++ [
+        (pagesTocFile rawPages)
+        (pagesTocFile articles)
+        (pagesTocFile unprocessedAll)
+        unprocessedAllArchive
+      ];
+    };
+    
   all = collectSymlinks {
     pathname = "all";
     name = config.productName;
