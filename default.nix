@@ -1,4 +1,4 @@
-{ configFile ? ./config.en.nix, dumpTest ? false, deduplicate ? true }:
+{ configFile ? ./config.ja.nix, dumpTest ? false, deduplicate ? false }:
 
 let
   sources = import ./nix/sources.nix;
