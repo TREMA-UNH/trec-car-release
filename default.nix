@@ -1,8 +1,8 @@
 { configFile ? ./config.en.nix, dumpTest ? false, deduplicate ? true }:
 
 let
-  config = (import configFile).config;
-  globalConfig = (import configFile).globalConfig;
+  config = (import configFile { inherit pkgs; }).config;
+  globalConfig = (import configFile { inherit pkgs; }).globalConfig;
 
   out_dir = "output/${config.productName}";
 
@@ -59,7 +59,7 @@ in rec {
 
   dumps = 
     let dumpDerivs  = pkgs.callPackage ./wikimedia-dump.nix { inherit config globalConfig collectSymlinks; };
-    in if dumpTest then dumpDerivs.dumpsDownloadedTest else xs.dumpsDownloaded;
+    in if dumpTest then dumpDerivs.dumpsDownloadedTest else dumpDerivs.dumpsDownloaded;
 
   # GloVe embeddings
   glove = mkDerivation {
@@ -471,7 +471,7 @@ in rec {
         unprocessedAllButBenchmarkPackage
       ] ++
       ( lib.optional deduplicate 
-        deduplicateArchive
+        deduplicationArchive
        );
   };
 

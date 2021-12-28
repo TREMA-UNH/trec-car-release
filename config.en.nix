@@ -1,3 +1,5 @@
+{ pkgs }:
+
 {
   config = rec {
     productName = "trec-car";
