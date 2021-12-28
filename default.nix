@@ -1,3 +1,4 @@
+{ dumpTest ? false }:
 
 let
   config = (import ./config.en.nix).config;
@@ -56,8 +57,9 @@ in rec {
     buildCommand = '' ${carTools.build_toc} paragraphs ${parasFile} > $out '';
   };
 
-  dumps = (pkgs.callPackage ./wikimedia-dump.nix { inherit config globalConfig collectSymlinks; }).dumpsDownloadedTest;
-  #dumps = (pkgs.callPackage ./wikimedia-dump.nix { inherit config globalConfig collectSymlinks; }).dumpsDownloaded;
+  dumps = 
+    let dumpDerivs  = pkgs.callPackage ./wikimedia-dump.nix { inherit config globalConfig collectSymlinks; };
+    in if dumpTest then dumpDerivs.dumpsDownloadedTest else xs.dumpsDownloaded;
 
   # GloVe embeddings
   glove = mkDerivation {
