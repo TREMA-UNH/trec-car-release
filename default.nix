@@ -1,4 +1,4 @@
-{ configFile ? ./config.en.nix, dumpTest ? false }:
+{ configFile ? ./config.en.nix, dumpTest ? false, deduplicate ? true }:
 
 let
   config = (import configFile).config;
@@ -278,7 +278,6 @@ in rec {
     let
       # Convenient way to temporarily disable the expensive deduplication step
       # for testing.
-      runDedup = true;
 
       deduped = mkDerivation {
         name = "dedup.articles.cbor";
@@ -289,7 +288,7 @@ in rec {
           ${carTools.trec-car-rewrite-duplicates} -o $out/pages.cbor -d ${duplicatesTable}/duplicates.table ${processedArticles}/pages.cbor
         '';
       };
-    in if runDedup then deduped else processedArticles;
+    in if deduplicate then deduped else processedArticles;
 
   # 3e. export deduplication data
   deduplicationPackage = collectSymlinks {
@@ -467,11 +466,13 @@ in rec {
         benchmarkY1trainArchive
         benchmarkY1testArchive
         benchmarkY1testPublicArchive
-        deduplicationArchive
         unprocessedTrainArchive
         unprocessedAllArchive
         unprocessedAllButBenchmarkPackage
-      ];
+      ] ++
+      ( lib.optional deduplicate 
+        deduplicateArchive
+       );
   };
 
 
