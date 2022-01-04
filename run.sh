@@ -14,8 +14,8 @@ nix build -f . -o $output $name --option cores 2 --option max-jobs 8 --extra-exp
 rm -f result-$name
 ln -s $(pwd)/$output result-$name
 touch result-$name $output
-find $output | xargs touch
-chmod -R 755  $output
+# find $output | xargs touch
+# chmod -R 755  $output
 
 echo "Result written to ./result-$name"
 echo "$output: \t $(git rev-parse HEAD) \t started=$start_time \t finished=$(date) $name \t $@ " >> results/run.log

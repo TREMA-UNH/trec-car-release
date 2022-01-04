@@ -20,10 +20,10 @@ let
     dump              = "trec-car-dump";
     fill_metadata     = "trec-car-fill-metadata";
     transform_content = "trec-car-transform-content";
-    multilang_car_index = "multilang-car-index";
     trec-car-minhash-duplicates = "trec-car-minhash-duplicates";
     trec-car-rewrite-duplicates = "trec-car-rewrite-duplicates";
     trec-car-duplicates-rewrite-table = "trec-car-duplicates-rewrite-table";
+    cross-site        = "trec-car-cross-site";
   };
   carTool = name: ./car-tools + "/${name}";
   carTools = lib.mapAttrs (_: carTool) carToolNames;
@@ -33,8 +33,6 @@ in rec {
   inherit carTools lib;
   carToolFiles = lib.concatStringsSep "\n" (lib.attrValues carToolNames);
 
-  #lang_filter_opts = "--lang-index=${langIndex}/lang-index.cbor --from-site=${config.wiki_name}";
-  lang_filter_opts = " ";
 
   # TOC file generation
   pagesTocFile = pagesFile: mkDerivation rec {
@@ -91,24 +89,6 @@ in rec {
   };
   embedding = "${glove}/glove.6B.50d.txt";
 
-  # -1. Inter-site page title index
-  langIndex = ./lang-index; # name may change to 'lang-index.cbor'
-  #langIndex = langIndex2;
-
-  langIndex2 = mkDerivation {
-    name = "lang-index";
-    passthru.pathname = "lang-index.cbor";
-    src = builtins.fetchurl {
-      url = http://dumps.wikimedia.your.org/wikidatawiki/entities/20171204/wikidata-20171204-all.json.bz2;
-      sha256 = "0ijrsk5znd3h46pmxhjxdhrpvda998rgqw0v1lrv0f8ysyb50x1g";
-    };
-    buildCommand = ''
-      mkdir $out
-      cd $out
-      bzcat $src | ${carTools.multilang_car_index}
-      mv out lang-index.cbor
-    '';
-  };
 
   # 0. all: Import
   rawPages =
@@ -161,7 +141,43 @@ in rec {
     '';
   };
 
-  unprocessedAll = fixDisambig redirectedPages;
+  disambiguatedPages = fixDisambig redirectedPages;
+
+  # 0.7: Fill WikiData QID
+  wikiDataDump = mkDerivation {
+    name = "wikiDataDump";
+    passthru.pathname = "wiki-data-dump.json";
+    src = builtins.fetchurl {
+      url = "http://dumps.wikimedia.your.org/wikidatawiki/entities/${globalConfig.dump_date}/wikidata-${globalConfig.dump_date}-all.json.bz2";
+      sha256 = null;
+    };
+    buildCommand = ''
+      mkdir $out
+      mv $src $out/wiki-data-dump.json
+    '';
+  };
+
+  wikiDataCrossSite = mkDerivation {
+    name = "wiki-data-cross-site";
+    passthru.pathname = "cross-site.cbor";
+    buildInputs = [ wikiDataDump ];
+    buildCommand = ''
+      mkdir $out
+      ${carTools.cross-site} -i ${wikiDataDump}/wiki-data-dump.json -o $out/cross-site.cbor +RTS -N$CORES 
+    '';
+  };
+
+  pagesWithQids = pages: mkDerivation {
+    name = "pages-with-qids.cbor";
+    passtru.pathname = "pages-with-qids.cbor";
+    buildInputs = [ pages ]
+    buildCommand = ''
+      mkdir $out
+      ${carTools.fill_metadata} --qid -i ${pages}/pages.cbor -o $out/pages.cbor --wikidata-cross-site ${wikiDataCrossSite}/cross-site.cbor --siteId ${globalConfig.wiki_name}
+    '';
+  };
+
+  unprocessedAll = pagesWithQids disambiguatedPages;
 
   # todo: fix order of definition (articles is defined below)
   unprocessedTrain = filterPages "unprocessed-train" articles "(train-set)" "unprocessedTrain.cbor";
@@ -459,6 +475,7 @@ in rec {
         (pagesTocFile unprocessedTrain)
         (pagesTocFile unprocessedAll)
         (pagesTocFile redirectedPages)
+        (pagesTocFile disambiguatedPages)
         paragraphCorpusArchive
         trainArchive
         test200
@@ -575,7 +592,7 @@ in rec {
     buildCommand = ''
       mkdir $out
       export LANG=en_US.UTF-8
-      ${carTools.filter} ${lang_filter_opts} ${pagesFile}/pages.cbor -o $out/pages.cbor '${pred}'
+      ${carTools.filter} ${pagesFile}/pages.cbor -o $out/pages.cbor '${pred}'
     '';
   };
 
