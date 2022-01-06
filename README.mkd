@@ -3,7 +3,7 @@ Required tools and libraries
 
 Download and install nix from <https://nixos.org/download.html>   (install nix, not nixOs)
 
-Get the trec-car-create code from <https://github.com/TREMA-UNH/trec-car-create/> and build with `nix build -A binaries -o car-bin`
+Get the trec-car-create code from <https://github.com/TREMA-UNH/trec-car-create/> and follow the instructions for compilation. (Then return back here.)
 
 
 Create new release directory
