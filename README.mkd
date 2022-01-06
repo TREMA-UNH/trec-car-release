@@ -36,9 +36,6 @@ Hash latest tools version for nix' auto-rebuild by calling
 Configure
 ---------
 
-
-
-
 Edit (or create) your language specific configuration file `config.*.nix` to adjust attributes
 
 Here an example for english (en):
@@ -66,6 +63,8 @@ While technically you can call `nix-build` directly, we recommend you call it th
 The following commands support a test mode (where you will only use the first file of the Wikipedia dump) by adding the parameter `--arg dumpTest true`.
 
 You can also change the config file (or deduplication mode) with `--arg configFile ./config.en.nix`
+
+To limit the number of cores used by the conversion to `$n` by adding the parameter `--cores $n` 
 
 
 ### Create Wikipedia dump

@@ -99,7 +99,7 @@ in rec {
         passthru.pathname = "${dumpFile}-rawPages.cbor";
         buildCommand = ''
           mkdir $out
-          bzcat ${dumpFile} | ${carTools._import} -c ${builtins.toPath config.import_config} --dump-date=${globalConfig.dump_date} --release-name="${config.productName} ${globalConfig.version}" -j$NIX_BUILD_CORES > $out/pages.cbor
+          bzcat ${dumpFile} | ${carTools._import} -c ${config.import_config} --dump-date=${globalConfig.dump_date} --release-name="${config.productName} ${globalConfig.version}" -j$NIX_BUILD_CORES > $out/pages.cbor
         '';
       };
 
@@ -146,14 +146,21 @@ in rec {
   # 0.7: Fill WikiData QID
   wikiDataDump = mkDerivation {
     name = "wikiDataDump";
-    passthru.pathname = "wiki-data-dump.json";
+    passthru.pathname = "wiki-data-dump.json.bz2";
+    # option for downloading
+    #src = builtins.fetchurl {
+    #  url = "http://dumps.wikimedia.your.org/wikidatawiki/entities/${globalConfig.dump_date}/wikidata-${globalConfig.dump_date}-all.json.bz2";
+    #  #sha256 = null;
+    #  sha256 = "0fdbzfyxwdj0kv8gdv5p0pzng4v4mr6j40v8z86ggnzrqxisw72a";
+    #};
     src = builtins.fetchurl {
-      url = "http://dumps.wikimedia.your.org/wikidatawiki/entities/${globalConfig.dump_date}/wikidata-${globalConfig.dump_date}-all.json.bz2";
-      sha256 = null;
+      url = "file:///home/ben/trec-car/data/wiki2022/wikidata-20211220-all.json.bz2";
+      sha256 = "0fdbzfyxwdj0kv8gdv5p0pzng4v4mr6j40v8z86ggnzrqxisw72a";
     };
     buildCommand = ''
       mkdir $out
-      mv $src $out/wiki-data-dump.json
+      # mv $src $out/wiki-data-dump.json.bz2
+      ln -s $src $out/wiki-data-dump.json.bz2
     '';
   };
 
@@ -163,17 +170,17 @@ in rec {
     buildInputs = [ wikiDataDump ];
     buildCommand = ''
       mkdir $out
-      ${carTools.cross-site} -i ${wikiDataDump}/wiki-data-dump.json -o $out/cross-site.cbor +RTS -N$CORES 
+      ${carTools.cross-site} -i ${wikiDataDump}/wiki-data-dump.json.bz2 -o $out/cross-site.cbor +RTS -N$NIX_BUILD_CORES -A128M -s -qn4
     '';
   };
 
   pagesWithQids = pages: mkDerivation {
     name = "pages-with-qids.cbor";
-    passtru.pathname = "pages-with-qids.cbor";
-    buildInputs = [ pages ]
+    passthru.pathname = "pages-with-qids.cbor";
+    buildInputs = [ pages ];
     buildCommand = ''
       mkdir $out
-      ${carTools.fill_metadata} --qid -i ${pages}/pages.cbor -o $out/pages.cbor --wikidata-cross-site ${wikiDataCrossSite}/cross-site.cbor --siteId ${globalConfig.wiki_name}
+      ${carTools.fill_metadata} --qid -i ${pages}/pages.cbor -o $out/pages.cbor --wikidata-cross-site ${wikiDataCrossSite}/cross-site.cbor --siteId ${config.wiki_name}
     '';
   };
 
