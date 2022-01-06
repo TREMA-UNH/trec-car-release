@@ -3,7 +3,7 @@
 {
   config = rec {
     productName = "trec-car";
-    lang = "ja";
+    lang = "en";
     wiki_name = "${lang}wiki";
     mirror_url = http://dumps.wikimedia.your.org/;
     import_config = ./config.en.yaml;
@@ -33,8 +33,8 @@
   };
 
   globalConfig = rec {
-    version = "v2.4.2";
-    dump_date = "20211220";
+    version = "v2.6;
+    dump_date = "20220101";
     lang_index = "lang-index";
     prefixMustPreds = ''
       name-has-prefix "Category talk:" |

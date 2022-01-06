@@ -1,4 +1,4 @@
-{ configFile ? ./config.ja.nix, dumpTest ? false, deduplicate ? false }:
+{ configFile ? ./config.en.nix, dumpTest ? false, deduplicate ? false }:
 
 let
   sources = import ./nix/sources.nix;
@@ -148,15 +148,15 @@ in rec {
     name = "wikiDataDump";
     passthru.pathname = "wiki-data-dump.json.bz2";
     # option for downloading
+    src = builtins.fetchurl {
+      url = "http://dumps.wikimedia.your.org/wikidatawiki/entities/${globalConfig.dump_date}/wikidata-${globalConfig.dump_date}-all.json.bz2";
+      #sha256 = null;
+      sha256 = "0fdbzfyxwdj0kv8gdv5p0pzng4v4mr6j40v8z86ggnzrqxisw72a";
+    #};
     #src = builtins.fetchurl {
-    #  url = "http://dumps.wikimedia.your.org/wikidatawiki/entities/${globalConfig.dump_date}/wikidata-${globalConfig.dump_date}-all.json.bz2";
-    #  #sha256 = null;
+    #  url = "file:///home/ben/trec-car/data/wiki2022/wikidata-20211220-all.json.bz2";
     #  sha256 = "0fdbzfyxwdj0kv8gdv5p0pzng4v4mr6j40v8z86ggnzrqxisw72a";
     #};
-    src = builtins.fetchurl {
-      url = "file:///home/ben/trec-car/data/wiki2022/wikidata-20211220-all.json.bz2";
-      sha256 = "0fdbzfyxwdj0kv8gdv5p0pzng4v4mr6j40v8z86ggnzrqxisw72a";
-    };
     buildCommand = ''
       mkdir $out
       # mv $src $out/wiki-data-dump.json.bz2
