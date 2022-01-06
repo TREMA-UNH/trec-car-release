@@ -27,11 +27,14 @@ export bingit=$bingit
 export bin=$bingit/car-tools/bin  // or the directory in which car binaries are in
 ```
 
+Make the trec-car-create tools available to the dataset build pipeline by calling:
 
-Hash latest tools version for nix' auto-rebuild by calling
 ```
 ./update-tools.sh 
 ```
+
+Background: semantic changes in our trec-car-creat tools are reflected with --tool-version. Should the version change, necessary parts of the pipeline will be automatically rerun.
+
 
 Configure
 ---------
@@ -42,8 +45,8 @@ Here an example for english (en):
 
 * `config.lang = "en"`
 * `import_config = ./config.en.yaml`
-* `globalConfig.version = "v2.4.2"`
-* `globalConfig.dump_date = "20211222"`  // yyyymmdd
+* `globalConfig.version = "v2.5"`
+* `globalConfig.dump_date = "20220101"`  // yyyymmdd
 
 You separately need `config.*.yaml` which defines language-specific template resolution of Wikipedia. If you are using a language that does not have an existing `config.$lang.yaml`, please create a matching language configuration based on our examples. Please use the same language mnemonics as Wikipedia.
 
