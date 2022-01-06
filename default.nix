@@ -1,106 +1,15 @@
+{ configFile ? ./config.ja.nix, dumpTest ? false, deduplicate ? false }:
+
 let
-  config = rec {
-    productName = "trec-car";
-    lang = "en";
-    wiki_name = "${lang}wiki";
-    mirror_url = http://dumps.wikimedia.your.org/;
-    import_config = ./config.en.yaml;
-    # if lost, ressurect from here: jelly:/mnt/grapes/datasets/trec-car/duplicates.v1.5-table.xz
-    duplicates-prev-table = /home/ben/trec-car/data/enwiki-20161220/release-v1.5/articles.dedup.cbor.duplicates.table;
-
-    forbiddenHeadings = pkgs.lib.concatMapStringsSep " " (s: "--forbidden '${s}'") [
-      "see also"
-      "references"
-      "external links"
-      "notes"
-      "bibliography"
-      "gallery"
-      "publications"
-      "further reading"
-      "track listing"
-      "sources"
-      "cast"
-      "discography"
-      "awards"
-      "other"
-      "external links and references"
-      "notes and references"
-    ];
-
-    transformArticle = "${forbiddenHeadings}";
-  };
-
-  globalConfig = rec {
-    version = "v2.4.2";
-    dump_date = "20211220";
-    lang_index = "lang-index";
-    prefixMustPreds = ''
-      name-has-prefix "Category talk:" |
-      name-has-prefix "Talk:" |
-      name-has-prefix "File:" |
-      name-has-prefix "File talk:" |
-      name-has-prefix "Special:" |
-      name-has-prefix "User:" |
-      name-has-prefix "User talk:" |
-      name-has-prefix "Wikipedia talk:" |
-      name-has-prefix "Wikipedia:" |
-      name-has-prefix "Template:" |
-      name-has-prefix "Template talk:" |
-      name-has-prefix "Module:" |
-      name-has-prefix "Draft:" |
-      name-has-prefix "Help:" |
-      name-has-prefix "Book:" |
-      name-has-prefix "TimedText:" |
-      name-has-prefix "MediaWiki:"
-    '';
-    prefixMaybePreds = ''
-      name-has-prefix "Category:" |
-      name-has-prefix "Portal:" |
-      name-has-prefix "List of " |
-      name-has-prefix "Lists of "
-    '';
-    categoryPreds = ''
-      category-contains " births" |
-      category-contains "deaths" |
-      category-contains " people" |
-      category-contains " event" |
-      category-contains " novels" |
-      category-contains " novel series" |
-      category-contains " books" |
-      category-contains " fiction" |
-      category-contains " plays" |
-      category-contains " films" |
-      category-contains " awards" |
-      category-contains " television series" |
-      category-contains " musicals" |
-      category-contains " albums" |
-      category-contains " songs" |
-      category-contains " singers" |
-      category-contains " artists" |
-      category-contains " music groups" |
-      category-contains " musical groups" |
-      category-contains " discographies" |
-      category-contains " concert tours" |
-      category-contains " albums" |
-      category-contains " soundtracks" |
-      category-contains " athletics clubs" |
-      category-contains "football clubs" |
-      category-contains " competitions" |
-      category-contains " leagues" |
-      category-contains " national register of historic places listings in " |
-      category-contains " by country" |
-      category-contains " by year" |
-      category-contains "years in " |
-      category-contains "years of the " |
-      category-contains "lists of "
-    '';
-  };
-
-  out_dir = "output/${config.productName}";
-
-  pkgs = import <nixpkgs> { };
+  sources = import ./nix/sources.nix;
+  pkgs = import sources.nixpkgs { };
   inherit (pkgs) lib;
   inherit (pkgs.stdenv) mkDerivation;
+
+  config = (import configFile { inherit pkgs; }).config;
+  globalConfig = (import configFile { inherit pkgs; }).globalConfig;
+
+  out_dir = "output/${config.productName}";
 
   carToolNames = {
     build_toc         = "trec-car-build-toc";
@@ -111,10 +20,10 @@ let
     dump              = "trec-car-dump";
     fill_metadata     = "trec-car-fill-metadata";
     transform_content = "trec-car-transform-content";
-    multilang_car_index = "multilang-car-index";
     trec-car-minhash-duplicates = "trec-car-minhash-duplicates";
     trec-car-rewrite-duplicates = "trec-car-rewrite-duplicates";
     trec-car-duplicates-rewrite-table = "trec-car-duplicates-rewrite-table";
+    cross-site        = "trec-car-cross-site";
   };
   carTool = name: ./car-tools + "/${name}";
   carTools = lib.mapAttrs (_: carTool) carToolNames;
@@ -124,8 +33,6 @@ in rec {
   inherit carTools lib;
   carToolFiles = lib.concatStringsSep "\n" (lib.attrValues carToolNames);
 
-  #lang_filter_opts = "--lang-index=${langIndex}/lang-index.cbor --from-site=${config.wiki_name}";
-  lang_filter_opts = " ";
 
   # TOC file generation
   pagesTocFile = pagesFile: mkDerivation rec {
@@ -149,8 +56,9 @@ in rec {
     buildCommand = '' ${carTools.build_toc} paragraphs ${parasFile} > $out '';
   };
 
-  dumps = (pkgs.callPackage ./wikimedia-dump.nix { inherit config globalConfig collectSymlinks; }).dumpsDownloadedTest;
-  #dumps = (pkgs.callPackage ./wikimedia-dump.nix { inherit config globalConfig collectSymlinks; }).dumpsDownloaded;
+  dumps = 
+    let dumpDerivs  = pkgs.callPackage ./wikimedia-dump.nix { inherit config globalConfig collectSymlinks; };
+    in if dumpTest then dumpDerivs.dumpsDownloadedTest else dumpDerivs.dumpsDownloaded;
 
   # GloVe embeddings
   glove = mkDerivation {
@@ -181,24 +89,6 @@ in rec {
   };
   embedding = "${glove}/glove.6B.50d.txt";
 
-  # -1. Inter-site page title index
-  langIndex = ./lang-index; # name may change to 'lang-index.cbor'
-  #langIndex = langIndex2;
-
-  langIndex2 = mkDerivation {
-    name = "lang-index";
-    passthru.pathname = "lang-index.cbor";
-    src = builtins.fetchurl {
-      url = http://dumps.wikimedia.your.org/wikidatawiki/entities/20171204/wikidata-20171204-all.json.bz2;
-      sha256 = "0ijrsk5znd3h46pmxhjxdhrpvda998rgqw0v1lrv0f8ysyb50x1g";
-    };
-    buildCommand = ''
-      mkdir $out
-      cd $out
-      bzcat $src | ${carTools.multilang_car_index}
-      mv out lang-index.cbor
-    '';
-  };
 
   # 0. all: Import
   rawPages =
@@ -209,7 +99,7 @@ in rec {
         passthru.pathname = "${dumpFile}-rawPages.cbor";
         buildCommand = ''
           mkdir $out
-          bzcat ${dumpFile} | ${carTools._import} -c ${builtins.toPath config.import_config} --dump-date=${globalConfig.dump_date} --release-name="${config.productName} ${globalConfig.version}" -j$NIX_BUILD_CORES > $out/pages.cbor
+          bzcat ${dumpFile} | ${carTools._import} -c ${config.import_config} --dump-date=${globalConfig.dump_date} --release-name="${config.productName} ${globalConfig.version}" -j$NIX_BUILD_CORES > $out/pages.cbor
         '';
       };
 
@@ -251,7 +141,50 @@ in rec {
     '';
   };
 
-  unprocessedAll = fixDisambig redirectedPages;
+  disambiguatedPages = fixDisambig redirectedPages;
+
+  # 0.7: Fill WikiData QID
+  wikiDataDump = mkDerivation {
+    name = "wikiDataDump";
+    passthru.pathname = "wiki-data-dump.json.bz2";
+    # option for downloading
+    #src = builtins.fetchurl {
+    #  url = "http://dumps.wikimedia.your.org/wikidatawiki/entities/${globalConfig.dump_date}/wikidata-${globalConfig.dump_date}-all.json.bz2";
+    #  #sha256 = null;
+    #  sha256 = "0fdbzfyxwdj0kv8gdv5p0pzng4v4mr6j40v8z86ggnzrqxisw72a";
+    #};
+    src = builtins.fetchurl {
+      url = "file:///home/ben/trec-car/data/wiki2022/wikidata-20211220-all.json.bz2";
+      sha256 = "0fdbzfyxwdj0kv8gdv5p0pzng4v4mr6j40v8z86ggnzrqxisw72a";
+    };
+    buildCommand = ''
+      mkdir $out
+      # mv $src $out/wiki-data-dump.json.bz2
+      ln -s $src $out/wiki-data-dump.json.bz2
+    '';
+  };
+
+  wikiDataCrossSite = mkDerivation {
+    name = "wiki-data-cross-site";
+    passthru.pathname = "cross-site.cbor";
+    buildInputs = [ wikiDataDump ];
+    buildCommand = ''
+      mkdir $out
+      ${carTools.cross-site} -i ${wikiDataDump}/wiki-data-dump.json.bz2 -o $out/cross-site.cbor +RTS -N$NIX_BUILD_CORES -A128M -s -qn4
+    '';
+  };
+
+  pagesWithQids = pages: mkDerivation {
+    name = "pages-with-qids.cbor";
+    passthru.pathname = "pages-with-qids.cbor";
+    buildInputs = [ pages ];
+    buildCommand = ''
+      mkdir $out
+      ${carTools.fill_metadata} --qid -i ${pages}/pages.cbor -o $out/pages.cbor --wikidata-cross-site ${wikiDataCrossSite}/cross-site.cbor --siteId ${config.wiki_name}
+    '';
+  };
+
+  unprocessedAll = pagesWithQids disambiguatedPages;
 
   # todo: fix order of definition (articles is defined below)
   unprocessedTrain = filterPages "unprocessed-train" articles "(train-set)" "unprocessedTrain.cbor";
@@ -369,7 +302,6 @@ in rec {
     let
       # Convenient way to temporarily disable the expensive deduplication step
       # for testing.
-      runDedup = true;
 
       deduped = mkDerivation {
         name = "dedup.articles.cbor";
@@ -380,7 +312,7 @@ in rec {
           ${carTools.trec-car-rewrite-duplicates} -o $out/pages.cbor -d ${duplicatesTable}/duplicates.table ${processedArticles}/pages.cbor
         '';
       };
-    in if runDedup then deduped else processedArticles;
+    in if deduplicate then deduped else processedArticles;
 
   # 3e. export deduplication data
   deduplicationPackage = collectSymlinks {
@@ -550,6 +482,7 @@ in rec {
         (pagesTocFile unprocessedTrain)
         (pagesTocFile unprocessedAll)
         (pagesTocFile redirectedPages)
+        (pagesTocFile disambiguatedPages)
         paragraphCorpusArchive
         trainArchive
         test200
@@ -558,13 +491,28 @@ in rec {
         benchmarkY1trainArchive
         benchmarkY1testArchive
         benchmarkY1testPublicArchive
-        deduplicationArchive
         unprocessedTrainArchive
         unprocessedAllArchive
         unprocessedAllButBenchmarkPackage
-      ];
+      ] ++
+      ( lib.optional deduplicate 
+        deduplicationArchive
+       );
   };
 
+
+  dump = collectSymlinks {
+    pathname = "dump";
+    name = "dump-${config.productName}";
+    inputs =
+      [] #builtins.attrValues carTools
+      ++ [
+        (pagesTocFile rawPages)
+        (pagesTocFile articles)
+        (pagesTocFile unprocessedAll)
+        unprocessedAllArchive
+      ];
+    };
 
   ##########################################################
   # TREC CAR   template derivations
@@ -651,7 +599,7 @@ in rec {
     buildCommand = ''
       mkdir $out
       export LANG=en_US.UTF-8
-      ${carTools.filter} ${lang_filter_opts} ${pagesFile}/pages.cbor -o $out/pages.cbor '${pred}'
+      ${carTools.filter} ${pagesFile}/pages.cbor -o $out/pages.cbor '${pred}'
     '';
   };
 

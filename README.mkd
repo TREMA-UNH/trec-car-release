@@ -1,0 +1,119 @@
+Required tools and libraries
+-----------------------------
+
+Download and install nix from <https://nixos.org/download.html>   (install nix, not nixOs)
+
+Get the trec-car-create code from <https://github.com/TREMA-UNH/trec-car-create/> and build with `nix build -A binaries -o car-bin`
+
+
+Create new release directory
+----------------------------
+
+```
+lang=en
+ver=1.6
+git clone git@github.com:TREMA-UNH/trec-car-release.git release-v$lang$ver
+cd release-v$lang$ver
+```
+
+Set up
+---------
+
+Using $bingit as directory where trec-car-create code was cloned into
+
+Set default configuration,
+```
+export bingit=$bingit
+export bin=$bingit/car-tools/bin  // or the directory in which car binaries are in
+```
+
+
+Hash latest tools version for nix' auto-rebuild by calling
+```
+./update-tools.sh 
+```
+
+Configure
+---------
+
+Edit (or create) your language specific configuration file `config.*.nix` to adjust attributes
+
+Here an example for english (en):
+
+* `config.lang = "en"`
+* `import_config = ./config.en.yaml`
+* `globalConfig.version = "v2.4.2"`
+* `globalConfig.dump_date = "20211222"`  // yyyymmdd
+
+You separately need `config.*.yaml` which defines language-specific template resolution of Wikipedia. If you are using a language that does not have an existing `config.$lang.yaml`, please create a matching language configuration based on our examples. Please use the same language mnemonics as Wikipedia.
+
+
+You can hard code your configuration choice by changing the top of the file `default.nix` as follows
+
+`configFile ? ./config.en.nix` -- change to a different file name
+
+You can also switch off deduplication of similar paragraphs by setting `deduplicate ? false`. 
+
+
+Run conversion
+--------------
+
+While technically you can call `nix-build` directly, we recommend you call it through the provided `run.sh` script.
+
+The following commands support a test mode (where you will only use the first file of the Wikipedia dump) by adding the parameter `--arg dumpTest true`.
+
+You can also change the config file (or deduplication mode) with `--arg configFile ./config.en.nix`
+
+To limit the number of cores used by the conversion to `$n` by adding the parameter `--cores $n` 
+
+
+### Create Wikipedia dump
+
+To  create just a dump call
+
+`./run.sh dump`
+
+your results will be collected in `result-dump`
+
+
+### Create full data set
+
+To create a dump with filtering, deduplication, outlines, paragraph corpus, and automatic ground truth, call
+
+`./run.sh all`
+
+your links to your results will be collected in  `result-all`
+
+
+We recommend you first build a dump, then rerun with `all`. The dump will be automatically reused.
+
+
+
+Save built data and clean up
+-----------------------------
+
+
+When data is built, it still resides inside the nix store. We recommend to archive it once done and clean the nix store.
+
+copy data out of result directory using "-L" to dereference softlinks
+```
+rsync -L result-all $yourTargetDir
+```
+
+nix tracks which files can be purged from its store through softlinks. Only when the last link (created through nix) is deleted, it will remove the build products. Until then it slowly eats up all hard drive space.
+
+Delete target directories of this (and previous failed attempts) in results/...-$date
+
+call the garbage collector of nix
+
+```
+nix-gc
+```
+
+
+UNH only: Upload data to trec-car.cs.unh.edu
+---------------------------------------------
+rsync -a *v?.?*zip lava:trec-car/public_html/datareleases
+
+
+
