@@ -16,7 +16,7 @@ git clone git@github.com:TREMA-UNH/trec-car-release.git release-v$lang$ver
 cd release-v$lang$ver
 ```
 
-Configure
+Set up
 ---------
 
 Using $bingit as directory where trec-car-create code was cloned into
@@ -33,36 +33,52 @@ Hash latest tools version for nix' auto-rebuild by calling
 ./update-tools.sh 
 ```
 
+Configure
+---------
 
-Edit `default.nix` to adjust attributes
+Edit (or create) your language specific configuration file `config.*.nix` to adjust attributes
+
+Here an example for english (en):
 
 * `config.lang = "en"`
 * `import_config = ./config.en.yaml`
 * `globalConfig.version = "v2.4.2"`
 * `globalConfig.dump_date = "20211222"`  // yyyymmdd
 
-if you are using a language that does not have an existing `config.$lang.yaml`, please create a matching language configuration based on our examples
+You separately need `config.*.yaml` which defines language-specific template resolution of Wikipedia. If you are using a language that does not have an existing `config.$lang.yaml`, please create a matching language configuration based on our examples. Please use the same language mnemonics as Wikipedia.
 
 
-Build dump
-----------
+You can hard code your configuration choice by changing the top of the file `default.nix` as follows
+
+`configFile ? ./config.en.nix` -- change to a different file name
+
+You can also switch off deduplication of similar paragraphs by setting `deduplicate ? false`. 
+
+
+Run conversion
+--------------
+
+While technically you can call `nix-build` directly, we recommend you call it through the provided `run.sh` script.
+
+The following commands support a test mode (where you will only use the first file of the Wikipedia dump) by adding the parameter `--arg dumpTest true`.
+
+You can also change the config file (or deduplication mode) with `--arg configFile ./config.en.nix`
+
+To limit the number of cores used by the conversion to `$n` by adding the parameter `--cores $n` 
+
+
+### Create Wikipedia dump
 
 To  create just a dump call
 
 `./run.sh dump`
 
-your results will be collected in `result-dump`, but these are just softlinks into the nix store
-
-copy data out of result directory using "-L" to dereference softlinks
-```
-rsync -L result-dump $yourTargetDir
-```
+your results will be collected in `result-dump`
 
 
-Build full data set
--------------------
+### Create full data set
 
-To create a dump with filtering, deduplication, outlines, paragraph corpus, and automatic ground trruth, call
+To create a dump with filtering, deduplication, outlines, paragraph corpus, and automatic ground truth, call
 
 `./run.sh all`
 
