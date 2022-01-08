@@ -149,7 +149,11 @@ in rec {
     passthru.pathname = "wiki-data-dump.json.bz2";
     # option for downloading
     src = builtins.fetchurl {
-      url = "http://dumps.wikimedia.your.org/wikidatawiki/entities/${globalConfig.dump_date}/wikidata-${globalConfig.dump_date}-all.json.bz2";
+      url =
+        let
+          #mirror = "http://dumps.wikimedia.your.org/";
+          mirror = "https://dumps.wikimedia.org/";
+        in "${mirror}/wikidatawiki/entities/${globalConfig.wikidata_dump_date}/wikidata-${globalConfig.wikidata_dump_date}-all.json.bz2";
       #sha256 = null;
       sha256 = "0fdbzfyxwdj0kv8gdv5p0pzng4v4mr6j40v8z86ggnzrqxisw72a";
     };
