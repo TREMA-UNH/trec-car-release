@@ -149,7 +149,11 @@ in rec {
     passthru.pathname = "wiki-data-dump.json.bz2";
     # option for downloading
     src = builtins.fetchurl {
-      url = "http://dumps.wikimedia.your.org/wikidatawiki/entities/${globalConfig.dump_date}/wikidata-${globalConfig.dump_date}-all.json.bz2";
+      url =
+        let
+          #mirror = "http://dumps.wikimedia.your.org/";
+          mirror = "https://dumps.wikimedia.org/";
+        in "${mirror}/wikidatawiki/entities/${globalConfig.wikidata_dump_date}/wikidata-${globalConfig.wikidata_dump_date}-all.json.bz2";
       #sha256 = null;
       sha256 = "0fdbzfyxwdj0kv8gdv5p0pzng4v4mr6j40v8z86ggnzrqxisw72a";
     };
@@ -369,26 +373,23 @@ in rec {
   readme = mkDerivation {
     name = "README.mkd";
     passthru.pathname = "README.mkd";
-    buildCommand =
-      let
-        contents = builtins.toFile "README.mkd" ''
-          This data set is part of the TREC CAR dataset version ${globalConfig.version}.
+    buildCommand = ''
+      mkdir $out
+      echo <<EOF >$out/README.mkd
+      This data set is part of the TREC CAR dataset version ${globalConfig.version}.
 
-          The included TREC CAR data sets by Laura Dietz, Ben Gamari available
-          at trec-car.cs.unh.edu are provided under a <a rel="license"
-          href="http://creativecommons.org/licenses/by-sa/3.0/deed.en_US">Creative
-          Commons Attribution-ShareAlike 3.0 Unported License</a>. The data is
-          based on content extracted from www.Wikipedia.org that is licensed
-          under the Creative Commons Attribution-ShareAlike 3.0 Unported
-          License.
+      The included TREC CAR data sets by Laura Dietz, Ben Gamari available
+      at trec-car.cs.unh.edu are provided under a <a rel="license"
+      href="http://creativecommons.org/licenses/by-sa/3.0/deed.en_US">Creative
+      Commons Attribution-ShareAlike 3.0 Unported License</a>. The data is
+      based on content extracted from www.Wikipedia.org that is licensed
+      under the Creative Commons Attribution-ShareAlike 3.0 Unported
+      License.
 
-          mediawiki-annotate: ${builtins.readFile ./car-tools/tools-commit} in git repos ${builtins.readFile ./car-tools/tools-remote}
-          build system: `git -C . rev-parse HEAD)` in git repos `git -C . remote get-url origin`
-        '';
-      in ''
-        mkdir $out
-        cp ${contents} $out/README.mkd
-      '';
+      mediawiki-annotate: ${builtins.readFile ./car-tools/tools-commit} in git repos ${builtins.readFile ./car-tools/tools-remote}
+      build system: $(git -C . rev-parse HEAD) in git repos $(git -C . remote get-url origin)
+      EOF
+    '';
   };
 
   license = mkDerivation {

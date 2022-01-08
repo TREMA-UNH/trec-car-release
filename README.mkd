@@ -1,15 +1,16 @@
 Required tools and libraries
 -----------------------------
 
-Download and install nix from <https://nixos.org/download.html>   (install nix, not nixOs)
+Download and install nix from <https://nixos.org/download.html> (install nix, not nixOs)
 
-Get the trec-car-create code from <https://github.com/TREMA-UNH/trec-car-create/> and build with `nix build -A binaries -o car-bin`
+Get the `trec-car-create` code from <https://github.com/TREMA-UNH/trec-car-create/>, follow the [instructions](https://github.com/TREMA-UNH/trec-car-create/blob/main/README.mkd) for compilation, and return back here.
 
 
 Create new release directory
 ----------------------------
 
-```
+Check out this repository and create a directory to collect your release in,
+```bash
 lang=en
 ver=1.6
 git clone git@github.com:TREMA-UNH/trec-car-release.git release-v$lang$ver
@@ -19,21 +20,22 @@ cd release-v$lang$ver
 Set up
 ---------
 
-Using $bingit as directory where trec-car-create code was cloned into
-
-Set default configuration,
-```
-export bingit=$bingit
-export bin=$bingit/car-tools/bin  // or the directory in which car binaries are in
+Set `$bin` to the location of whree the `trec-car-create` binaries reside. For instance,
+```bash
+export bin=$(pwd)/car-tools/bin
 ```
 
-Make the trec-car-create tools available to the dataset build pipeline by calling:
+Optionally set the variable `$toolsrepo` to the location of the trec-car-tools working directory
 
-```
+
+
+Make the `trec-car-create` tools available to the data-set build pipeline by calling:
+
+```bash
 ./update-tools.sh 
 ```
 
-Background: semantic changes in our trec-car-creat tools are reflected with --tool-version. Should the version change, necessary parts of the pipeline will be automatically rerun.
+Background: semantic changes in our `trec-car-create` tools are reflected in the version report by the `--tool-version` flag supported by each tool. Should the version change, necessary parts of the pipeline will be automatically re-run.
 
 
 Configure
@@ -41,7 +43,7 @@ Configure
 
 Edit (or create) your language specific configuration file `config.*.nix` to adjust attributes
 
-Here an example for english (en):
+Here an example for english (`en`):
 
 * `config.lang = "en"`
 * `import_config = ./config.en.yaml`
@@ -50,10 +52,11 @@ Here an example for english (en):
 
 You separately need `config.*.yaml` which defines language-specific template resolution of Wikipedia. If you are using a language that does not have an existing `config.$lang.yaml`, please create a matching language configuration based on our examples. Please use the same language mnemonics as Wikipedia.
 
+You can hard code your configuration choice by changing the top of the file `default.nix` as follows:
 
-You can hard code your configuration choice by changing the top of the file `default.nix` as follows
-
-`configFile ? ./config.en.nix` -- change to a different file name
+```nix
+configFile ? ./config.en.nix   # change to a different file name
+```
 
 You can also switch off deduplication of similar paragraphs by setting `deduplicate ? false`. 
 
@@ -72,16 +75,18 @@ To limit the number of cores used by the conversion to `$n` by adding the parame
 
 ### Create Wikipedia dump
 
-To  create just a dump call
+To produce a car-style dump of Wikipedia. Necessary files will automatically be downloaded. 
 
-`./run.sh dump`
+```bash
+./run.sh dump
+```
 
 your results will be collected in `result-dump`
 
 
 ### Create full data set
 
-To create a dump with filtering, deduplication, outlines, paragraph corpus, and automatic ground truth, call
+Create a dump with filtering, deduplication, outlines, paragraph corpus, and automatic ground truth, call
 
 `./run.sh all`
 

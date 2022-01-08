@@ -35,6 +35,7 @@
   globalConfig = rec {
     version = "v2.6";
     dump_date = "20220101";
+    wikidata_dump_date = "20220103";
     lang_index = "lang-index";
     prefixMustPreds = ''
       name-has-prefix "Category talk:" |

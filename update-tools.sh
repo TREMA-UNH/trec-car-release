@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
 #bin=/home/ben/trec-car/mediawiki-annotate-release/bin
-if [ -z "$bin" ]; then echo "\$bin not set"; exit 1; fi
+if [ -z "$bin" ]; then echo "set \$bin to directory with car-create binaries"; exit 1; fi
+if [ -z "$toolsrepo" ]; then toolsrepo=$bin/../..; fi
 
 tools=$(nix eval --extra-experimental-features nix-command --raw -f . carToolFiles)
 
@@ -14,5 +15,5 @@ for tool in $tools; do
     echo "$tool    $version"
 done
 
-git -C $bingit rev-parse HEAD > car-tools/tools-commit
-git -C $bingit remote get-url origin > car-tools/tools-remote
+git -C $toolsrepo rev-parse HEAD > car-tools/tools-commit
+git -C $toolsrepo remote get-url origin > car-tools/tools-remote
