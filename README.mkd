@@ -25,7 +25,7 @@ Set `$bin` to the location of whree the `trec-car-create` binaries reside. For i
 export bin=$(pwd)/car-tools/bin
 ```
 
-Optionally set the variable `$toolrepo` to the location of the trec-car-tools working directory
+Optionally set the variable `$toolsrepo` to the location of the trec-car-tools working directory
 
 
 
