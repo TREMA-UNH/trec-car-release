@@ -24,6 +24,7 @@ let
     trec-car-rewrite-duplicates = "trec-car-rewrite-duplicates";
     trec-car-duplicates-rewrite-table = "trec-car-duplicates-rewrite-table";
     cross-site        = "trec-car-cross-site";
+    jsonl-export       = "trec-car-jsonl-export";
   };
   carTool = name: ./car-tools + "/${name}";
   carTools = lib.mapAttrs (_: carTool) carToolNames;
@@ -188,6 +189,16 @@ in rec {
     '';
   };
 
+  jsonlExport = pages: mkDerivation {
+    name = "jsonl-export";
+    passtru.pathname = "${pages}.jsonl.gz";
+    buildInputs = [ pages ];
+    buildCommand = ''
+      mkdir $out
+      ${carTools.jsonl-export} -o $out/pages.jsonl.gz ${pages}/pages.cbor
+    '';
+  };
+
   unprocessedAll = pagesWithQids disambiguatedPages;
 
   # todo: fix order of definition (articles is defined below)
@@ -202,7 +213,7 @@ in rec {
   unprocessedAllPackage = collectSymlinks {
     name = "unprocessedAll-package";
     pathname = "unprocessedAll.cbor";
-    inputs = [license readme unprocessedAll];
+    inputs = [ license readme unprocessedAll (jsonlExport unprocessedAll) ];
   };
 
 
@@ -514,18 +525,6 @@ in rec {
   };
 
 
-  dump = collectSymlinks {
-    pathname = "dump";
-    name = "dump-${config.productName}";
-    inputs =
-      [] #builtins.attrValues carTools
-      ++ [
-        (pagesTocFile rawPages)
-        (pagesTocFile articles)
-        (pagesTocFile unprocessedAll)
-        unprocessedAllArchive
-      ];
-    };
 
   ##########################################################
   # TREC CAR   template derivations
