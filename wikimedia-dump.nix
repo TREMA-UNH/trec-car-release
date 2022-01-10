@@ -17,7 +17,7 @@ let
   dumpStatus = stdenv.mkDerivation rec {
     name = "dump-${config.wiki_name}-${globalConfig.dump_date}-status";
     passthru.pathname = name;
-    src = config.dumpstatus;
+    src = config.dumpStatus;
     buildCommand = ''
       mkdir $out
       cp $src $out/dumpstatus.json
