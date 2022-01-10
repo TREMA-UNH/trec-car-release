@@ -7,7 +7,7 @@
     wiki_name = "${lang}wiki";
     mirror_url = http://dumps.wikimedia.your.org/;
     import_config = ./config.en.yaml;
-    dumpStatus = ./dumpstatus.json
+    dumpStatus = ./dumpstatus.json;
 
     # if lost, ressurect from here: jelly:/mnt/grapes/datasets/trec-car/duplicates.v1.5-table.xz
     # duplicates-prev-table = /home/ben/trec-car/data/enwiki-20161220/release-v1.5/articles.dedup.cbor.duplicates.table;
@@ -38,7 +38,7 @@
     version = "v2.6";
     dump_date = "20220101";
     wikidata_dump_date = "20220103";
-    wikidata_dump_sha256 = "0fdbzfyxwdj0kv8gdv5p0pzng4v4mr6j40v8z86ggnzrqxisw72a";
+    wikidata_dump_sha256 = "1dzxm740gm74wnb96bb8829gygkmqwwpzihbrljzrddr74hfpnch";
     lang_index = "lang-index";
     prefixMustPreds = ''
       name-has-prefix "Category talk:" |
