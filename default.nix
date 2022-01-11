@@ -190,7 +190,7 @@ in rec {
 
   jsonlExport = pages: mkDerivation {
     name = "jsonl-export";
-    passthru.pathname = "${pages}.jsonl.gz";
+    passthru.pathname = "${pages.pathname}.jsonl.gz";
     buildInputs = [ pages ];
     buildCommand = ''
       mkdir $out
