@@ -8,6 +8,7 @@ echo "toolsrepo=$toolsrepo"
 
 tools=$(nix eval --extra-experimental-features nix-command --raw -f . carToolFiles)
 
+rm -vRf car-tools
 mkdir -p car-tools
 for tool in $tools; do
     version=$($bin/$tool --tool-version 0>/dev/null 2>/dev/null || echo 0)

@@ -451,7 +451,6 @@ in rec {
                  license
                  readme
                  train
-                 #(jsonlExport { pages = train; })
                  (exportTitles train) (exportTopics train)
                ] ++ (allExports "${name}-train" train)
                ++ trainFolds
@@ -463,7 +462,6 @@ in rec {
              inputs = [
                license readme
                test
-               #(jsonlExport { pages = test; } )
                (exportTitles test)  
                (exportTopics test)
              ] ++ (allExports "${name}-test" test);
@@ -474,7 +472,7 @@ in rec {
              inputs = [
                license readme
                (exportOutlines "${name}-test" test)
-              # (jsonlExport {pages = (exportOutlines "${name}-test" test); output = "outlines.cbor" ;})  # @ben
+               (jsonlExport {pages = (exportOutlines "${name}-test" test); output = "outlines.cbor" ;})  
                (exportTitles test)  (exportTopics test)
              ];
            };
@@ -594,7 +592,7 @@ in rec {
         (exportQrel "entity-article-qrel"  "article.entity" name pagesFile)
         (exportQrel "entity-toplevel-qrel" "toplevel.entity" name pagesFile)
         (jsonlExport { pages = pagesFile; } )
-       # (jsonlExport { pages = (exportOutlines "${name}-outlines" pagesFile); output = "outlines.cbor"; } )
+        (jsonlExport { pages = (exportOutlines "${name}-outlines" pagesFile); output = "outlines.cbor"; } )
       ];
 
   exportTitles = pagesFile: mkDerivation {
