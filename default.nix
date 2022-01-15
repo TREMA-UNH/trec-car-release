@@ -188,14 +188,17 @@ in rec {
     '';
   };
 
-  jsonlExport = pages: mkDerivation {
+  jsonlExport = {pages, output ? "pages.cbor" }: mkDerivation {
     name = "jsonl-export";
     passthru.pathname = "${pages.pathname}.jsonl.gz";
+    output = "${pages.pathname}.jsonl.gz";
     buildInputs = [ pages ];
     buildCommand = ''
       mkdir $out
-      ${carTools.jsonl-export} -o $out/pages.jsonl.gz ${pages}/pages.cbor
-    '';
+      ${carTools.jsonl-export} -o $out/pages.jsonl.gz  ${pages}/${output}
+      '';
+      # ${pages}/pages.cbor
+    
   };
 
   unprocessedAll = pagesWithQids disambiguatedPages;
@@ -206,13 +209,13 @@ in rec {
   unprocessedTrainPackage = collectSymlinks {
     name = "unprocessedTrain-package";
     pathname = "unprocessedTrain.cbor";
-    inputs = [license readme unprocessedTrain];
+    inputs = [license readme unprocessedTrain (jsonlExport { pages = unprocessedTrain; }) ];
   };
 
   unprocessedAllPackage = collectSymlinks {
     name = "unprocessedAll-package";
     pathname = "unprocessedAll.cbor";
-    inputs = [ license readme unprocessedAll (jsonlExport unprocessedAll) ];
+    inputs = [ license readme unprocessedAll (jsonlExport { pages = unprocessedAll; }) ];
   };
 
 
@@ -223,7 +226,8 @@ in rec {
   unprocessedAllButBenchmarkPackage = collectSymlinks {
     name = "unprocessedAllButBenchmark.cbor";
     pathname = "unprocessedAllButBenchmark.cbor";
-    inputs = [license readme unprocessedAllButBenchmark] ++ (toFolds "unprocessedAllButBenchmark" unprocessedAllButBenchmark);
+    inputs = [license readme unprocessedAllButBenchmark (jsonlExport { pages = unprocessedAllButBenchmark;} )] 
+          ++ (toFolds "unprocessedAllButBenchmark" unprocessedAllButBenchmark);
   };
 
   unprocessedPackage = collectSymlinks {
@@ -426,6 +430,7 @@ in rec {
     inputs = [license readme baseTrain]
           ++ allExports ("train") baseTrain
           ++ baseTrainFolds
+          ++ [(jsonlExport {pages = baseTrain;})]
           ++ lib.concatMap (f: allExports ("train-"+f.name) f) baseTrainFolds;
   };
 
@@ -446,6 +451,7 @@ in rec {
                  license
                  readme
                  train
+                 (jsonlExport { pages = train; })
                  (exportTitles train) (exportTopics train)
                ] ++ (allExports "${name}-train" train)
                ++ trainFolds
@@ -457,7 +463,9 @@ in rec {
              inputs = [
                license readme
                test
-               (exportTitles test)  (exportTopics test)
+               (jsonlExport { pages = test; } )
+               (exportTitles test)  
+               (exportTopics test)
              ] ++ (allExports "${name}-test" test);
            };
            testPublicPackage = collectSymlinks {
@@ -466,6 +474,7 @@ in rec {
              inputs = [
                license readme
                (exportOutlines "${name}-test" test)
+              # (jsonlExport {pages = (exportOutlines "${name}-test" test); output = "outlines.cbor" ;})  # @ben
                (exportTitles test)  (exportTopics test)
              ];
            };
@@ -584,6 +593,7 @@ in rec {
         (exportQrel "entity-hier-qrel"     "hierarchical.entity" name pagesFile)
         (exportQrel "entity-article-qrel"  "article.entity" name pagesFile)
         (exportQrel "entity-toplevel-qrel" "toplevel.entity" name pagesFile)
+       # (jsonlExport { pages = (exportOutlines "${name}-outlines" pagesFile); output = "outlines.cbor"; } )
       ];
 
   exportTitles = pagesFile: mkDerivation {
@@ -690,7 +700,7 @@ in rec {
     buildCommand = ''
       mkdir $out
       mkdir ${name}
-      cp -rs ${deriv} ${name}
+      cp -rs ${deriv}/* ${name}
       find -type d | xargs chmod ug+wx
       tar --dereference -cJf $out/out.tar.xz ${name}
     '';
