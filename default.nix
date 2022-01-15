@@ -451,7 +451,7 @@ in rec {
                  license
                  readme
                  train
-                 (jsonlExport { pages = train; })
+                 #(jsonlExport { pages = train; })
                  (exportTitles train) (exportTopics train)
                ] ++ (allExports "${name}-train" train)
                ++ trainFolds
@@ -463,7 +463,7 @@ in rec {
              inputs = [
                license readme
                test
-               (jsonlExport { pages = test; } )
+               #(jsonlExport { pages = test; } )
                (exportTitles test)  
                (exportTopics test)
              ] ++ (allExports "${name}-test" test);
@@ -593,6 +593,7 @@ in rec {
         (exportQrel "entity-hier-qrel"     "hierarchical.entity" name pagesFile)
         (exportQrel "entity-article-qrel"  "article.entity" name pagesFile)
         (exportQrel "entity-toplevel-qrel" "toplevel.entity" name pagesFile)
+        (jsonlExport { pages = pagesFile; } )
        # (jsonlExport { pages = (exportOutlines "${name}-outlines" pagesFile); output = "outlines.cbor"; } )
       ];
 
