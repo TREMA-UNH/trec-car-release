@@ -5,6 +5,15 @@ let
   pkgs = import sources.nixpkgs { };
   inherit (pkgs) lib;
   inherit (pkgs.stdenv) mkDerivation;
+  # unionAttrs :: List Attrset -> Attrset
+  unionAttrs = xs: lib.foldr (a: b: a // b) {} xs;
+
+  symlink-tree = import ./symlink-tree.nix { inherit (pkgs) stdenv lib; };
+  symlinkDrv = drv:
+    let xs = lib.attrNames (builtins.readDir drv);
+    in if builtins.length xs == 1
+      then { "${drv.pathname}" = symlink-tree.file (lib.elemAt xs 0); }
+      else throw "symlinkDrv: Multiple files in ${drv}";
 
   config = (import configFile { inherit pkgs; }).config;
   globalConfig = (import configFile { inherit pkgs; }).globalConfig;
@@ -25,6 +34,7 @@ let
     trec-car-duplicates-rewrite-table = "trec-car-duplicates-rewrite-table";
     cross-site        = "trec-car-cross-site";
     jsonl-export       = "trec-car-jsonl-export";
+    jsonl-split        = "trec-car-split-jsonl";
   };
   carTool = name: ./car-tools + "/${name}";
   carTools = lib.mapAttrs (_: carTool) carToolNames;
@@ -191,14 +201,20 @@ in rec {
   jsonlExport = {pages, output ? "pages.cbor" }: mkDerivation {
     name = "jsonl-export";
     passthru.pathname = "${pages.pathname}.jsonl.gz";
-    output = "${pages.pathname}.jsonl.gz";
-    buildInputs = [ pages ];
+    outname = "car.jsonl.gz";
     buildCommand = ''
       mkdir $out
-      ${carTools.jsonl-export} -o $out/pages.jsonl.gz  ${pages}/${output}
+      ${carTools.jsonl-export} -o $out/$outname  ${pages}/${output}
       '';
-      # ${pages}/pages.cbor
-    
+  };
+
+  jsonlSplit = jsonl : mkDerivation {
+    name = "jsonl-split";
+    passthru.pathname = "${jsonl.pathname}-split";
+    buildCommand = ''
+      mkdir $out
+      ${carTools.jsonl-split} -n 1000000 -o $out/pages-{n}.jsonl.gz ${jsonl}/${jsonl.outname}
+      '';
   };
 
   unprocessedAll = pagesWithQids disambiguatedPages;
@@ -218,6 +234,12 @@ in rec {
     inputs = [ license readme unprocessedAll (jsonlExport { pages = unprocessedAll; }) ];
   };
 
+  # @ben
+  unprocessedAllPackageJsonl = collectSymlinks {
+    name = "unprocessedAllJsonl-package";
+    pathname = "unprocessedAll-jsonl";
+    inputs = [ license readme (jsonlSplit (jsonlExport { pages = unprocessedAll;}))];
+  };
 
   test200titles=./test200.titles;
   benchmarkY1titles=./benchmarkY1.titles;
@@ -347,7 +369,7 @@ in rec {
   paragraphCorpusPackage = collectSymlinks {
     name = "paragraphCorpus-package";
     pathname = "paragraphCorpus.cbor";
-    inputs = [license readme paragraphCorpus];
+    inputs = [license readme paragraphCorpus (jsonlExport {pages = paragraphCorpus; output = "paragraphs.cbor"; })];
   };
   paragraphCorpusArchive = buildArchive "paragraphCorpus" paragraphCorpusPackage;
 
@@ -430,13 +452,95 @@ in rec {
     inputs = [license readme baseTrain]
           ++ allExports ("train") baseTrain
           ++ baseTrainFolds
-          ++ [(jsonlExport {pages = baseTrain;})]
+          # ++ [(jsonlExport {pages = baseTrain;})]
           ++ lib.concatMap (f: allExports ("train-"+f.name) f) baseTrainFolds;
   };
 
   trainArchive = buildArchive "train" trainPackage;
 
   # 9. Build benchmarks
+  allExports2 = name: pagesFile:
+      let outlines = (exportOutlines "${name}-outlines" pagesFile);
+          paragraphs = (exportParagraphs "${name}-paragraph" pagesFile);
+          pagesJsonl = (jsonlExport { pages = pagesFile ; } ); 
+          outlinesJsonl = (jsonlExport { pages = outlines ; output = "outlines.cbor"; } );
+          paragraphsJsonl = (jsonlExport { pages = paragraphs ; output = "paragraphs.cbor"; });
+          pagesSplit = jsonlSplit pagesJsonl;
+      in unionAttrs (map symlinkDrv [
+        paragraphs
+        outlines
+        (exportQrel "para-hier-qrel"     "hierarchical" name pagesFile)
+        (exportQrel "para-article-qrel"  "article" name pagesFile)
+        (exportQrel "para-toplevel-qrel" "toplevel" name pagesFile)
+        (exportQrel "entity-hier-qrel"     "hierarchical.entity" name pagesFile)
+        (exportQrel "entity-article-qrel"  "article.entity" name pagesFile)
+        (exportQrel "entity-toplevel-qrel" "toplevel.entity" name pagesFile)
+        pagesJsonl
+        outlinesJsonl
+        paragraphsJsonl
+        #(jsonlSplit pagesJsonl)
+      ]) // {"${pagesSplit.pathname}" = symlink-tree.directory (symlink-tree.files pagesSplit); } ;
+
+  benchmarkPackages2 = basePages: name: titleList:
+      let
+        pages = filterPages "filtered-benchmark-${name}" basePages ''(name-set-from-file "${titleList}")'' "pages.cbor" ;
+        test  = filterPages "${name}-test.cbor" pages "(test-set)" "test.pages.cbor";
+        train = filterPages "${name}-train.cbor" pages "(train-set)" "train.pages.cbor";
+        trainFolds = toFolds "${name}-train" train;
+      in {
+        trainPackage = symlink-tree.mkSymlinkTree {
+          name = "benchmark-${name}-train";
+          components =
+            let
+              inherit (symlink-tree) directory file files;
+            in directory ({}  # with `a // b` we are overwriting attributes in a that are present in b
+            // symlinkDrv license
+            // symlinkDrv readme
+            // symlinkDrv train
+            // symlinkDrv (exportTitles train)
+            // symlinkDrv (exportTopics train)
+            // unionAttrs (map symlinkDrv trainFolds)
+            // unionAttrs (map (pagesFile: allExports2 pagesFile.name pagesFile) trainFolds)
+            // (allExports2 train.name train)
+          );
+        };
+        testPackage = symlink-tree.mkSymlinkTree {
+          name = "benchmark-${name}-test";
+          components =
+            let
+              inherit (symlink-tree) directory file files;
+            in directory ({}  # with `a // b` we are overwriting attributes in a that are present in b
+            // symlinkDrv license
+            // symlinkDrv readme
+            // symlinkDrv test
+            // symlinkDrv (exportTitles test)
+            // symlinkDrv (exportTopics test)
+            // (allExports2 test.name test)
+            );
+          };
+        
+        testPublicPackage = symlink-tree.mkSymlinkTree {
+          name = "benchmark-${name}-test-public";
+          components =
+            let
+              inherit (symlink-tree) directory file files;
+              outlines = (exportOutlines "${name}-outlines" test);
+              outlinesJsonl = (jsonlExport { pages = outlines ; output = "outlines.cbor"; } );
+
+
+            in directory ({}  # with `a // b` we are overwriting attributes in a that are present in b
+            // symlinkDrv license
+            // symlinkDrv readme
+            // symlinkDrv (exportTitles test)
+            // symlinkDrv (exportTopics test)
+            // symlinkDrv outlines
+            // symlinkDrv outlinesJsonl
+            );
+          };
+      };
+
+  wombat = benchmarkPackages2 base "benchmarkY1" ./benchmarkY1.titles;
+
   benchmarkPackages = basePages: name: titleList:
       let
         pages = filterPages "filtered-benchmark-${name}" basePages ''(name-set-from-file "${titleList}")'' "pages.cbor" ;
@@ -481,7 +585,7 @@ in rec {
      collectSymlinks {
        name = "benchmark-${name}";
        pathname = name;
-       inputs = builtins.attrValues (benchmarkPackages basePages name titleList);
+       inputs = builtins.attrValues (benchmarkPackages2 basePages name titleList);
      };
 
   # Everything
@@ -496,7 +600,7 @@ in rec {
   benchmarkY1testArchive = buildArchive "benchmarkY1test" (benchmarkPackages base "benchmarkY1" ./benchmarkY1.titles).testPackage;
   benchmarkY1testPublicArchive = buildArchive "benchmarkY1test.public" (benchmarkPackages base "benchmarkY1" ./benchmarkY1.titles).testPublicPackage;
 
-  dump = collectSymlinks {
+  dump-cbor = collectSymlinks {
     pathname = "dump";
     name = "dump-${config.productName}";
     inputs =
@@ -508,6 +612,18 @@ in rec {
         unprocessedAllArchive
       ];
     };
+  dump-jsonl = collectSymlinks {                                                                                                                      
+    pathname = "dump";       
+    name = "dump-jsonl-${config.productName}";                           
+    inputs =          
+      [] #builtins.attrValues carTools  
+      ++ [  
+        (pagesTocFile rawPages)           
+        (pagesTocFile articles)              
+        (pagesTocFile unprocessedAll)
+        unprocessedAllArchive                 
+      ];                             
+    };       
     
   all = collectSymlinks {
     pathname = "all";
@@ -582,17 +698,25 @@ in rec {
       };
 
   allExports = name: pagesFile:
-      [
-        (exportParagraphs "${name}-paragraph" pagesFile)
-        (exportOutlines "${name}-outlines" pagesFile)
+      let outlines = (exportOutlines "${name}-outlines" pagesFile);
+          paragraphs = (exportParagraphs "${name}-paragraph" pagesFile);
+          pagesJsonl = (jsonlExport { pages = pagesFile ; } ); 
+          outlinesJsonl = (jsonlExport { pages = outlines ; output = "outlines.cbor"; } );
+          paragraphsJsonl = (jsonlExport { pages = paragraphs ; output = "paragraphs.cbor"; });
+
+      in [
+        paragraphs
+        outlines
         (exportQrel "para-hier-qrel"     "hierarchical" name pagesFile)
         (exportQrel "para-article-qrel"  "article" name pagesFile)
         (exportQrel "para-toplevel-qrel" "toplevel" name pagesFile)
         (exportQrel "entity-hier-qrel"     "hierarchical.entity" name pagesFile)
         (exportQrel "entity-article-qrel"  "article.entity" name pagesFile)
         (exportQrel "entity-toplevel-qrel" "toplevel.entity" name pagesFile)
-        (jsonlExport { pages = pagesFile; } )
-        (jsonlExport { pages = (exportOutlines "${name}-outlines" pagesFile); output = "outlines.cbor"; } )
+        pagesJsonl
+        outlinesJsonl
+        paragraphsJsonl
+        (jsonlSplit pagesJsonl)
       ];
 
   exportTitles = pagesFile: mkDerivation {
