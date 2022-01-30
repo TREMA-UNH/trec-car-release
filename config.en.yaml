@@ -82,7 +82,3 @@ disambiguationTemplates: # Q6148868
   #
 infoboxTemplates:                                                                                                                                                                                              
   - infobox
-  - speciesbox  
-
-pageTagTemplates:
-  - 
