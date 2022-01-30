@@ -39,6 +39,7 @@ let
     cross-site        = "trec-car-cross-site";
     jsonl-export       = "trec-car-jsonl-export";
     jsonl-split        = "trec-car-split-jsonl";
+    jsonl-provenance   = "trec-car-jsonl-provenance";
   };
   carTool = name: ./car-tools + "/${name}";
   carTools = lib.mapAttrs (_: carTool) carToolNames;
@@ -46,7 +47,7 @@ let
 
 in rec {
   inherit carTools lib;
-  defExportCfg = { exportJsonlGz = false; exportCbor = false; exportJsonlSplits = true; exportFull = false; };
+  defExportCfg = { exportJsonlGz = false; exportCbor = true; exportJsonlSplits = false; exportFull = false; };
 
   carToolFiles = lib.concatStringsSep "\n" (lib.attrValues carToolNames);
 
@@ -214,6 +215,20 @@ in rec {
       '';
   };
 
+
+
+  jsonlProvExport = {pages, output ? "pages.cbor" }: mkDerivation {
+    name = "jsonl-prov-export";
+    passthru.pathname = "${replaceString ".cbor" "" pages.pathname}.provenance.jsonl";
+    outname = "car.prov.jsonl";
+    buildCommand = ''
+      mkdir $out
+      ${carTools.jsonl-provenance} -o $out/$outname  ${pages}/${output}
+      '';
+  };
+
+
+
   jsonlSplit = fileType: jsonl : mkDerivation {
     name = "jsonl-split";
     passthru.pathname = replaceString ".jsonl.gz" ".jsonl-splits" jsonl.pathname;
@@ -364,11 +379,13 @@ in rec {
     name = "paragraphCorpus";
     components = 
     let paragraphJsonl = jsonlExport { pages = paragraphCorpus; output = "paragraphs.cbor";};
+        paragraphProvJsonl = jsonlProvExport { pages = paragraphCorpus; output = "paragraphs.cbor";};
         paragraphsSplit = jsonlSplit "paragraphs" paragraphJsonl;
       in symlink-tree.directory( {}
         // symlinkDrv license
         // symlinkDrv readme
         // lib.attrsets.optionalAttrs exportCbor (symlinkDrv paragraphCorpus) 
+        // lib.attrsets.optionalAttrs (exportJsonlGz || exportJsonlSplits) (symlinkDrv paragraphProvJsonl)
         // lib.attrsets.optionalAttrs exportJsonlGz (symlinkDrv paragraphJsonl)
         // lib.attrsets.optionalAttrs exportJsonlSplits
             { "${paragraphsSplit.pathname}" = symlink-tree.symlink paragraphsSplit ; }
@@ -470,6 +487,7 @@ in rec {
           pagesSplit = jsonlSplit "pages" pagesJsonl;
           outlinesSplit = jsonlSplit "outlines" outlinesJsonl;
           paragraphsSplit = jsonlSplit "paragraphs" paragraphsJsonl;
+          pagesProvenance = jsonlProvExport { pages = pages ; }; 
       in unionAttrs (map symlinkDrv (
         (lib.optionals exportCbor [paragraphs outlines])
         ++ [
@@ -483,7 +501,8 @@ in rec {
            pagesJsonl
            outlinesJsonl
            paragraphsJsonl
-      ])))
+         ])
+         ++ (lib.optionals (exportJsonlGz || exportJsonlSplits) [ pagesProvenance ])))
       // lib.attrsets.optionalAttrs exportJsonlSplits {
         "${pagesSplit.pathname}" = symlink-tree.symlink pagesSplit;
         "${outlinesSplit.pathname}" = symlink-tree.symlink outlinesSplit;
@@ -501,6 +520,7 @@ in rec {
             allFolds = toFolds "${name}" pages; 
             jsonlFolds = map (f: (jsonlExport { pages = f; })) allFolds;
             jsonlFoldSplits = map (f: (jsonlSplit "pages" f)) jsonlFolds;
+            pagesProvenance = jsonlProvExport { pages = pages ; };
         in symlink-tree.directory ({}
           // symlinkDrv license
           // symlinkDrv readme
@@ -512,7 +532,10 @@ in rec {
           )
           // lib.attrsets.optionalAttrs exportCbor (
               unionAttrs (map (f: symlinkDrv f) allFolds)  # fold CBOR
-           )
+             )
+          // lib.attrsets.optionalAttrs (exportJsonlGz || exportJsonlSplits) (
+              symlinkDrv pagesProvenance   # jsonl provenance
+             )
           //  lib.attrsets.optionalAttrs exportJsonlGz ( 
             unionAttrs (map (f: symlinkDrv f) jsonlFolds)   # fold jsonl.gz
            )
@@ -531,6 +554,7 @@ in rec {
           // symlinkDrv license
           // symlinkDrv readme
           // lib.attrsets.optionalAttrs exportCbor (symlinkDrv pages)
+          // lib.attrsets.optionalAttrs (exportJsonlGz || exportJsonlSplits) (symlinkDrv (jsonlProvExport { pages = pages ; }) )
           // lib.attrsets.optionalAttrs exportJsonlGz (symlinkDrv jsonlAll)
           // lib.attrsets.optionalAttrs exportJsonlSplits (
              let spl =  jsonlSplit "pages" jsonlAll;

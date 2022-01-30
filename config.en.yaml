@@ -81,4 +81,8 @@ disambiguationTemplates: # Q6148868
   # look up language specific template in https://www.wikidata.org/wiki/Q6148868
   #
 infoboxTemplates:                                                                                                                                                                                              
-  - infobox     
+  - infobox
+  - speciesbox  
+
+pageTagTemplates:
+  - 
