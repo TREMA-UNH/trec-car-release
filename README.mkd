@@ -84,6 +84,20 @@ Configure the matching wikidata dump date and file SHA in `config.*.nix`, exampl
 * wikidata_dump_sha256 = "1dzxm740gm74wnb96bb8829gygkmqwwpzihbrljzrddr74hfpnch";
 
 
+Customize your conversion
+--------------------------
+
+The conversion will commence in the following passes. 
+
+1. dumps are downloaded and converted into raw pages
+2. content pages are identified, using predicates listed in `${globalConfig.dropPagesWithPrefix}` (all else)
+3. information from redirects and disambiguation pages are distilled into the metadata of article pages
+4. article pages are filtered into filteredPages. All pages that match the following predicates  are removed `${config.filterPagesWithPrefix}` and `${config.filterCategories}`. Furthermore all disambiguation pages and redirect pages are removed. The predicate list can be extended with `${config.filterpredicates}` (note only pages matching these predicates will be considered, unless inverted with the not operator) 
+5. benchmarks are derived from the filtered pages.
+
+The exact syntax for predicates can be taken from `./car-tools/trec-car-filter -h`
+
+
 
 Run conversion
 --------------
