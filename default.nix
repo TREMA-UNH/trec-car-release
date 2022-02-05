@@ -132,7 +132,7 @@ in rec {
     };
 
   # 0.4: Kick out non-content pages
-  contentPages = filterPages "content.cbor" rawPages '' (!(${globalConfig.prefixMustPreds})) '' "content.cbor";
+  contentPages = filterPages "content.cbor" rawPages '' (!(${globalConfig.dropPagesWithPrefix})) '' "content.cbor";
 
   # 0.5: Fill redirect metadata
   fixRedirects = pages: mkDerivation {
@@ -400,7 +400,7 @@ in rec {
   # 3. Drop pages of forbidden categories
   filtered =
     let
-      preds = '' (!(${globalConfig.prefixMustPreds}) & !(${globalConfig.prefixMaybePreds}) & !is-redirect & !is-disambiguation & !(${globalConfig.categoryPreds})) '';
+      preds = '' (!(${globalConfig.dropPagesWithPrefix}) & !(${config.filterPagesWithPrefix}) & !is-redirect & !is-disambiguation & !(${config.filterCategories})) ''; # ${config.filterpredicates}
     in filterPages "filtered.cbor" dedupArticles preds "filtered.cbor";
 
   # 4. Drop, images, long/short sections, articles with <3 sections --(dont drop lead anymore!!)
