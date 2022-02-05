@@ -82,3 +82,13 @@ disambiguationTemplates: # Q6148868
   #
 infoboxTemplates:                                                                                                                                                                                              
   - infobox
+  - speciesbox  
+
+pageTagTemplates:
+  VA: "Vital article"
+  Vital article: "Vital article"  
+  good article: "Good article"
+  GA : "Good article"
+  Featured articles: "Featured articles"    
+
+

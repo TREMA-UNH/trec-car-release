@@ -47,7 +47,7 @@ let
 
 in rec {
   inherit carTools lib;
-  defExportCfg = { exportJsonlGz = false; exportCbor = true; exportJsonlSplits = false; exportFull = false; };
+  defExportCfg = { exportJsonlGz = false; exportCbor = false; exportJsonlSplits = true; exportFull = false; };
 
   carToolFiles = lib.concatStringsSep "\n" (lib.attrValues carToolNames);
 
@@ -63,7 +63,7 @@ in rec {
       ${carTools.build_toc} pages $out/pages.cbor
       ${carTools.build_toc} page-names $out/pages.cbor
       ${carTools.build_toc} page-redirects $out/pages.cbor
-
+      ${carTools.build_toc} page-qids $out/pages.cbor
     '';
   };
 
@@ -251,7 +251,10 @@ in rec {
   test200titles=./test200.titles;
   benchmarkY1titles=./benchmarkY1.titles;
 
-  unprocessedAllButBenchmark = filterPages "allbutbenchmark" articles "((! name-set-from-file \"${test200titles}\") & (! name-set-from-file \"${benchmarkY1titles}\"))" "unprocessedAllButBenchmark.cbor";
+
+  test200RedirectedTitles = redirectedTitles {pages = articles; titles = test200titles;};
+
+  unprocessedAllButBenchmark = filterPages "allbutbenchmark" articles "((! name-or-redirect-set-from-file  \"${test200titles}\") & (! name-or-redirect-set-from-file \"${benchmarkY1titles}\"))" "unprocessedAllButBenchmark.cbor";
    unprocessedAllButBenchmarkPackage = cfg: pageFoldsPackages ({pages = unprocessedAllButBenchmark; name = "unprocessedAllButBenchmark";} // cfg);
    unprocessedAllButBenchmarkArchive = cfg: buildArchive "unprocessedAllButBenchmark" (unprocessedAllButBenchmarkPackage cfg);
 
@@ -569,7 +572,7 @@ in rec {
       let cfg = { inherit exportJsonlGz exportCbor exportJsonlSplits exportFull;};
       pages = if (titleList == null)
                 then basePages
-                else filterPages "filtered-benchmark-${name}" basePages ''(name-set-from-file "${titleList}")'' "pages.cbor" ;
+                else filterPages "filtered-benchmark-${name}" basePages ''(name-or-redirect-set-from-file "${titleList}")'' "pages.cbor" ;
         test  = filterPages "${name}-test.cbor" pages "(test-set)" "test.pages.cbor";
         train = filterPages "${name}-train.cbor" pages "(train-set)" "train.pages.cbor";
         trainFolds = toFolds "${name}-train" train;
@@ -584,6 +587,7 @@ in rec {
             // lib.attrsets.optionalAttrs (exportFull && exportCbor) (symlinkDrv train)
             // symlinkDrv (exportTitles train)
             // symlinkDrv (exportTopics train)
+            // symlinkDrv (exportWikidataQids train)
             // lib.attrsets.optionalAttrs exportCbor (unionAttrs (map symlinkDrv trainFolds))
             // unionAttrs (map (pagesFile: allExports2 ({name = pagesFile.name; pages = pagesFile; } // cfg )) trainFolds)
             // lib.attrsets.optionalAttrs exportFull (allExports2 ({name = train.name; pages = train;} // cfg))
@@ -598,6 +602,7 @@ in rec {
             // lib.attrsets.optionalAttrs (exportFull && exportCbor) (symlinkDrv test)
             // symlinkDrv (exportTitles test)
             // symlinkDrv (exportTopics test)
+            // symlinkDrv (exportWikidataQids test) 
             // lib.attrsets.optionalAttrs exportCbor (unionAttrs (map symlinkDrv testFolds))
             // unionAttrs (map (pagesFile: allExports2 ({name = pagesFile.name; pages = pagesFile; } // cfg )) testFolds)
             // lib.attrsets.optionalAttrs exportFull (allExports2 ({name = test.name; pages = test;} // cfg))
@@ -616,6 +621,7 @@ in rec {
             // symlinkDrv readme
             // symlinkDrv (exportTitles test)
             // symlinkDrv (exportTopics test)
+            // symlinkDrv (exportWikidataQids test) 
             // lib.attrsets.optionalAttrs exportCbor (symlinkDrv outlines)
             // lib.attrsets.optionalAttrs exportJsonlGz (symlinkDrv outlinesJsonl)
             // lib.attrsets.optionalAttrs exportJsonlSplits 
@@ -793,6 +799,18 @@ in rec {
     '';
   };
 
+  exportWikidataQids = pagesFile: mkDerivation {
+    name = "export-qids-${pagesFile.name}";
+    passthru.pathname = "qids";
+    nativeBuildInputs = [ pkgs.glibcLocales ];
+    buildInputs = [pagesFile];
+    buildCommand = ''
+      mkdir $out
+      export LANG=en_US.UTF-8
+      ${carTools.dump} page-qids  ${pagesFile}/pages.cbor > $out/qids
+    '';
+  };
+
   filterPages = name: pagesFile: pred: pathname: mkDerivation {
     name = "filter-${name}";
     passthru.pathname = pathname;
@@ -806,6 +824,16 @@ in rec {
   };
 
 
+  redirectedTitles = {pages, titles}: mkDerivation {
+    name = "redirectedTitles-${titles}";
+    passthru.pathname = "$titles.redirected.titles";
+    buildInputs = [pages];
+    buildCommand = ''
+      mkdir $out
+      export LANG=en_US.UTF-8
+      ${carTools.dump} titles --redirects-from-file ${titles} ${pages} > titles.txt
+    '';
+  };
 
   ##########################################################
   # Utilities  (independent of trec car)
