@@ -1,4 +1,4 @@
-{ configFile ? ./config.en.nix, dumpTest ? false, deduplicate ? false }:
+{ configFile ? ./config.en.nix, dumpTest ? false, deduplicate ? false, exportJsonlGz ? false, exportCbor ? true, exportJsonlSplits ? true, exportFull ? false }:
 
 let
   sources = import ./nix/sources.nix;
@@ -48,7 +48,7 @@ let
 
 in rec {
   inherit carTools lib;
-  defExportCfg = { exportJsonlGz = false; exportCbor = false; exportJsonlSplits = true; exportFull = false; };
+  defExportCfg = { exportJsonlGz = exportJsonlGz; exportCbor = exportCbor; exportJsonlSplits = exportJsonlSplits; exportFull = exportFull; };
 
   carToolFiles = lib.concatStringsSep "\n" (lib.attrValues carToolNames);
 
