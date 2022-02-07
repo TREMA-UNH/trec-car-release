@@ -40,6 +40,7 @@ let
     jsonl-export       = "trec-car-jsonl-export";
     jsonl-split        = "trec-car-split-jsonl";
     jsonl-provenance   = "trec-car-jsonl-provenance";
+    export-cluster-benchmark = "trec-car-cluster-benchmark";
   };
   carTool = name: ./car-tools + "/${name}";
   carTools = lib.mapAttrs (_: carTool) carToolNames;
@@ -500,7 +501,9 @@ in rec {
         (exportQrel "entity-hier-qrel"     "hierarchical.entity" name pages)
         (exportQrel "entity-article-qrel"  "article.entity" name pages)
         (exportQrel "entity-toplevel-qrel" "toplevel.entity" name pages)
-        ]++ (lib.optionals exportJsonlGz [
+        (exportClusterBenchmark "para-toplevel-cluster" "toplevel.cluster" name pages)    
+        (exportEntityLinkingBenchmark "entity-linking" name pages)
+      ]++ (lib.optionals exportJsonlGz [
            pagesJsonl
            outlinesJsonl
            paragraphsJsonl
@@ -643,7 +646,29 @@ in rec {
   benchmarkY1testPublicArchive = cfg: buildArchive "benchmarkY1test.public" (benchmarkY1Package cfg).testPublicPackage;
 
 
-  allPackages = symlink-tree.mkSymlinkTree {
+
+
+  benchmarkArchive = {name, titleList ? null, qidList ? null}:  
+    let cfg = defExportCfg;
+    benchmarkPkg = benchmarkPackages ({basePages = base; name = name; titleList = titleList;} // cfg);
+
+  in symlink-tree.mkSymlinkTree {
+    name = "${name}";
+    components = 
+      symlink-tree.directory ( 
+      { 
+       "${name}.train" = symlink-tree.symlink (benchmarkPkg).trainPackage;
+       "${name}.test" = symlink-tree.symlink (benchmarkPkg).testPackage;
+       "${name}.publicTest" = symlink-tree.symlink (benchmarkPkg).testPublicPackage;
+      }
+     );
+  };
+
+
+  bY1 = benchmarkArchive {name= "benchmarkY1"; titleList=./benchmarkY1.titles; };
+
+
+    allPackages = symlink-tree.mkSymlinkTree {
     name = config.productName;
     components = 
       let cfg = defExportCfg;
@@ -752,6 +777,33 @@ in rec {
         name =  "${name}-${mode}";
         pagesFile = pagesFile;
       };
+  exportBenchmark = {mode, output, pathname ? output, name, pagesFile}:
+    let toc = pagesTocFile pagesFile;
+    in mkDerivation {
+      name = "export-${mode}-${name}";
+      buildInputs = [ toc ];
+      passthru.pathname = pathname;
+      buildCommand = ''
+        mkdir $out
+        ${carTools.export-cluster-benchmark} ${toc}/pages.cbor --${mode} $out/${output}
+      '';
+    };
+  exportClusterBenchmark = mode: output: name: pagesFile:
+    exportBenchmark {
+      mode = mode;
+      output = "${output}.para.toplevel.cluster.jsonl.gz";
+      pathname = "${baseNameOf pagesFile.pathname}-${output}.jsonl.gz";
+      name = "${name}-${mode}";
+      pagesFile = pagesFile;
+    };
+  exportEntityLinkingBenchmark =  output: name: pagesFile:
+    exportBenchmark {
+      mode = "entity-linking";
+      output = "${output}.entity-linking.jsonl.gz";
+      pathname = "${baseNameOf pagesFile.pathname}-${output}.jsonl.gz";
+      name = "${name}-entity-linking";
+      pagesFile = pagesFile;
+    };
 
   allExports = name: pagesFile:
       let outlines = (exportOutlines "${name}-outlines" pagesFile);
@@ -769,6 +821,8 @@ in rec {
         (exportQrel "entity-hier-qrel"     "hierarchical.entity" name pagesFile)
         (exportQrel "entity-article-qrel"  "article.entity" name pagesFile)
         (exportQrel "entity-toplevel-qrel" "toplevel.entity" name pagesFile)
+        (exportClusterBenchmark "para-toplevel-cluster" "toplevel.cluster" name pagesFile)
+        (exportEntityLinkingBenchmark "entity-linking" name pagesFile) 
         pagesJsonl
         outlinesJsonl
         paragraphsJsonl
