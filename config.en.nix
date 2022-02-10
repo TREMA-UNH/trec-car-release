@@ -40,7 +40,8 @@
       name-has-prefix "List of " |
       name-has-prefix "Lists of "
     '';
-    filterCategories = ''
+
+    carFilterCategories = ''
       category-contains " births" |
       category-contains "deaths" |
       category-contains " people" |
@@ -76,7 +77,41 @@
       category-contains "lists of "
     '';
 
-    filterpredicates = "";
+    filterPredicates = " !is-disambiguation";
+
+    benchmarkY1titles = ./benchmarkY1.titles;
+    test200titles = ./test200.titles;
+
+    # For 01/01/2022 only very few articles are tagges with "Vital Article" instead we:
+    # Create a list of vital pages created with wikidata sparql query
+    # SELECT ?item {?item wdt:P5008 wd:Q5460604 . OPTIONAL {?item wikibase:sitelinks ?sl } . OPTIONAL {?item wikibase:statements ?st } } ORDER BY ?item
+    # using https://query.wikidata.org/
+    vitalArticleQids = ./vital-articles.qids;
+
+    # type BenchmarkDef = { name :: String, titleList :: String, predicate :: String }
+    # benchmarks :: List BenchmarkDef
+    benchmarks = [
+      {name = "benchmarkY1";
+       predicate = "name-or-redirect-set-from-file \"${benchmarkY1titles}\"";
+      }
+      {name = "test200";
+       predicate = "name-or-redirect-set-from-file \"${test200titles}\"";
+     }
+     { name = "vital-articles";
+      predicate = "qid-set-from-file \"${vitalArticleQids}\"";
+    }
+     { name = "good-articles";
+       predicate = "has-page-tag [\"Good article\"]";
+     }
+     { name = "US-history";
+      predicate = "( category-contains \" history\" & category-contains \" united states\" )";
+    }
+    { name = "car-train-large";
+      predicate = "( train-set ) & (! ${carFilterCategories} )";
+    }
+   ];
+
+    butBenchmarkPredicate = "((! name-or-redirect-set-from-file  \"${test200titles}\") & (! name-or-redirect-set-from-file \"${benchmarkY1titles}\") )";
   };
 
   globalConfig = rec {

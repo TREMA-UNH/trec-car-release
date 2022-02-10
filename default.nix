@@ -255,7 +255,10 @@ in rec {
 
   test200RedirectedTitles = redirectedTitles {pages = articles; titles = test200titles;};
 
-  unprocessedAllButBenchmark = filterPages "allbutbenchmark" articles "((! name-or-redirect-set-from-file  \"${test200titles}\") & (! name-or-redirect-set-from-file \"${benchmarkY1titles}\"))" "unprocessedAllButBenchmark.cbor";
+
+  # unprocessedAllButBenchmark = filterPages "allbutbenchmark" articles "((! name-or-redirect-set-from-file  \"${test200titles}\") & (! name-or-redirect-set-from-file \"${benchmarkY1titles}\"))" "unprocessedAllButBenchmark.cbor";
+  unprocessedAllButBenchmark = 
+   filterPages "allbutbenchmark" articles "${config.butBenchmarkPredicate}" "unprocessedAllButBenchmark.cbor";
    unprocessedAllButBenchmarkPackage = cfg: pageFoldsPackages ({pages = unprocessedAllButBenchmark; name = "unprocessedAllButBenchmark";} // cfg);
    unprocessedAllButBenchmarkArchive = cfg: buildArchive "unprocessedAllButBenchmark" (unprocessedAllButBenchmarkPackage cfg);
 
@@ -401,7 +404,7 @@ in rec {
   # 3. Drop pages of forbidden categories
   filtered =
     let
-      preds = '' (!(${globalConfig.dropPagesWithPrefix}) & !(${config.filterPagesWithPrefix}) & !is-redirect & !is-disambiguation & !(${config.filterCategories})) ''; # ${config.filterpredicates}
+      preds = '' (!(${globalConfig.dropPagesWithPrefix}) & !(${config.filterPagesWithPrefix}) & !is-redirect  & (${config.filterPredicates})) '';
     in filterPages "filtered.cbor" dedupArticles preds "filtered.cbor";
 
   # 4. Drop, images, long/short sections, articles with <3 sections --(dont drop lead anymore!!)
@@ -424,7 +427,7 @@ in rec {
   toFolds = name: pagesFile:
     let fold = n:
       let nStr = toString n;
-      in filterPages "${name}-fold-${nStr}" pagesFile "(fold ${nStr})" "fold-${nStr}-${pagesFile.pathname}";
+  in filterPages "${name}-fold-${nStr}" pagesFile "(fold ${nStr})" "fold-${nStr}-${pagesFile.pathname}";
     in builtins.genList fold 5;
 
   baseTrainFolds = toFolds "base-train" baseTrain;
@@ -571,11 +574,18 @@ in rec {
       
 
 
-  benchmarkPackages = {basePages, name, titleList ? null, exportJsonlGz, exportCbor, exportJsonlSplits, exportFull}:
+  benchmarkPackages = {basePages, name, titleList ? null, predicate ? null, exportJsonlGz, exportCbor, exportJsonlSplits, exportFull}:
       let cfg = { inherit exportJsonlGz exportCbor exportJsonlSplits exportFull;};
-      pages = if (titleList == null)
-                then basePages
-                else filterPages "filtered-benchmark-${name}" basePages ''(name-or-redirect-set-from-file "${titleList}")'' "pages.cbor" ;
+      pages = if titleList != null 
+                then filterPages "filtered-benchmark-${name}" basePages ''(name-or-redirect-set-from-file "${titleList}")'' "pages.cbor" 
+                else if predicate != null
+                  then filterPages "filtered-benchmark-${name}" basePages ''(${predicate})'' "pages.cbor" 
+                  else basePages;
+
+#      if (titleList == null  && predicates == null)
+#                then basePages
+#                else filterPages "filtered-benchmark-${name}" basePages ''(name-or-redirect-set-from-file "${titleList}")'' "pages.cbor" ;
+
         test  = filterPages "${name}-test.cbor" pages "(test-set)" "test.pages.cbor";
         train = filterPages "${name}-train.cbor" pages "(train-set)" "train.pages.cbor";
         trainFolds = toFolds "${name}-train" train;
@@ -648,27 +658,60 @@ in rec {
 
 
 
-  benchmarkArchive = {name, titleList ? null, qidList ? null}:  
+  benchmarkArchive = {name, titleList ? null, qidList ? null, predicate ? null}:  
     let cfg = defExportCfg;
-    benchmarkPkg = benchmarkPackages ({basePages = base; name = name; titleList = titleList;} // cfg);
+    benchmarkPkg = benchmarkPackages ({basePages = base; name = name; titleList = titleList; predicate = predicate;} // cfg);
 
-  in symlink-tree.mkSymlinkTree {
-    name = "${name}";
+    in symlink-tree.mkSymlinkTree {
+      name = "${name}";
+      components = 
+        symlink-tree.directory ( 
+        { 
+         "${name}.train" = symlink-tree.symlink benchmarkPkg.trainPackage;
+         "${name}.test" = symlink-tree.symlink benchmarkPkg.testPackage;
+         "${name}.publicTest" = symlink-tree.symlink benchmarkPkg.testPublicPackage;
+        }
+       );
+    };
+
+  # customBenchmark :: AttrSet String BenchmarkDef -> Derivation
+  customBenchmark = benchmarkDefList:
+    symlink-tree.mkSymlinkTree {
+      name = "customBenchmarks"; 
+      components =
+          symlink-tree.directory (
+            lib.listToAttrs (map (b: lib.nameValuePair b.name (symlink-tree.symlink (benchmarkArchive b))) benchmarkDefList)
+          );
+  };
+
+  customBenchmarkArchives = customBenchmark config.benchmarks;
+
+
+  allBasePackages = symlink-tree.mkSymlinkTree {
+    name = config.productName;
     components = 
-      symlink-tree.directory ( 
+      let cfg = defExportCfg;
+      in symlink-tree.directory ( #unionAttrs ( map symlinkDrv 
       { 
-       "${name}.train" = symlink-tree.symlink (benchmarkPkg).trainPackage;
-       "${name}.test" = symlink-tree.symlink (benchmarkPkg).testPackage;
-       "${name}.publicTest" = symlink-tree.symlink (benchmarkPkg).testPublicPackage;
+       "rawPages"= symlink-tree.symlink  (pagesTocFile rawPages);
+       "articles" = symlink-tree.symlink (pagesTocFile articles);
+       "allParagraphs" = symlink-tree.symlink (allParagraphs);  # @laura paraTocFile
+       "unprocessedTrain" = symlink-tree.symlink (pagesTocFile unprocessedTrain);
+       "unprocessedAll" = symlink-tree.symlink (pagesTocFile unprocessedAll);
+       "redirectedPages" = symlink-tree.symlink (pagesTocFile redirectedPages);
+       "disambiguatedPages" = symlink-tree.symlink (pagesTocFile disambiguatedPages);
+       "paragraphCorpusPackage" = symlink-tree.symlink (paragraphCorpusPackage cfg);
+       "trainLargePackage" = symlink-tree.symlink (trainLargePackageCfg cfg);
+       "benchmarks" =  symlink-tree.symlink (customBenchmarkArchives); 
+       "unprocessedTrainPackage" = symlink-tree.symlink (unprocessedTrainPackage cfg);
+       "unprocessedAllPackage" = symlink-tree.symlink (unprocessedAllPackage cfg);
+       "unprocessedAllButBenchmarkPackage" = symlink-tree.symlink (unprocessedAllButBenchmarkPackage cfg);
       }
+     // lib.optionalAttrs deduplicate (symlinkDrv deduplicationArchive)
      );
   };
 
-
-  bY1 = benchmarkArchive {name= "benchmarkY1"; titleList=./benchmarkY1.titles; };
-
-
-    allPackages = symlink-tree.mkSymlinkTree {
+  allTrecCarPackages = symlink-tree.mkSymlinkTree {
     name = config.productName;
     components = 
       let cfg = defExportCfg;
@@ -714,6 +757,22 @@ in rec {
         )));
   };
 
+  allPackages = symlink-tree.mkSymlinkTree {
+    name = config.productName;
+    components = 
+      let cfg = defExportCfg;
+      in symlink-tree.directory ( #unionAttrs ( map symlinkDrv 
+      { 
+       "unprocessedTrain" = symlink-tree.symlink (pagesTocFile unprocessedTrain);
+       "paragraphCorpusPackage" = symlink-tree.symlink (paragraphCorpusPackage cfg);
+       #"trainLargePackage" = symlink-tree.symlink (trainLargePackageCfg cfg);
+       "benchmarks" =  symlink-tree.symlink (customBenchmarkArchives); 
+       "unprocessedTrainPackage" = symlink-tree.symlink (unprocessedTrainPackage cfg);
+       "unprocessedAllPackage" = symlink-tree.symlink (unprocessedAllPackage cfg);
+       "unprocessedAllButBenchmarkPackage" = symlink-tree.symlink (unprocessedAllButBenchmarkPackage cfg);
+      }
+     );
+  };
 
 
   all = symlink-tree.mkSymlinkTree {
@@ -723,16 +782,14 @@ in rec {
     in symlink-tree.directory (unionAttrs ( map symlinkDrv 
       [
         (paragraphCorpusArchive cfg)
-        (trainLargeArchive cfg)
-        (test200Archive cfg)
-        (benchmarkY1trainArchive cfg)
-        (benchmarkY1testArchive cfg)
-        (benchmarkY1testPublicArchive cfg)
+        #(trainLargeArchive cfg)
         (unprocessedTrainArchive cfg)
         (unprocessedAllArchive cfg)
         (unprocessedAllButBenchmarkArchive cfg)
       ] 
-      ));
+      ) // 
+      {"benchmarks" =  symlink-tree.symlink (customBenchmarkArchives);}
+      );
   };
 
 
