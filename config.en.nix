@@ -104,10 +104,11 @@
        predicate = "has-page-tag [\"Good article\"]";
      }
      { name = "US-history";
-      predicate = "( category-contains \" history\" & category-contains \" united states\" )";
+      predicate = "( category-contains \"history of the united states\" )";
+      # predicate = "( category-contains \" history\" & category-contains \" united states\" )";
     }
     { name = "car-train-large";
-      predicate = "( train-set ) & (! ${carFilterCategories} )";
+    predicate = "( train-set ) & (! (${carFilterCategories}) )";
     }
    ];
 
