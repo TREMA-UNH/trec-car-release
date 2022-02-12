@@ -27,8 +27,11 @@ export bin=$(pwd)/car-tools/bin
 
 Optionally set the variable `$toolsrepo` to the location of the trec-car-tools working directory
 
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> origin/master
 Make the `trec-car-create` tools available to the data-set build pipeline by calling:
 
 ```bash
@@ -45,10 +48,8 @@ Edit (or create) your language specific configuration file `config.*.nix` to adj
 
 Here an example for english (`en`):
 
-* `config.lang = "en"`
-* `import_config = ./config.en.yaml`
-* `globalConfig.version = "v2.5"`
 * `globalConfig.dump_date = "20220101"`  // yyyymmdd
+* `globalConfig.version = "v2.6"`
 
 You separately need `config.*.yaml` which defines language-specific template resolution of Wikipedia. If you are using a language that does not have an existing `config.$lang.yaml`, please create a matching language configuration based on our examples. Please use the same language mnemonics as Wikipedia.
 
@@ -58,7 +59,47 @@ You can hard code your configuration choice by changing the top of the file `def
 configFile ? ./config.en.nix   # change to a different file name
 ```
 
-You can also switch off deduplication of similar paragraphs by setting `deduplicate ? false`. 
+#### Fetch dumpstatus
+
+Finally fetch the `dumpstatus.json` file of the dump which you are going to
+ingest (e.g. <https://dumps.wikimedia.org/enwiki/20220101/dumpstatus.json>) and place it in
+the `trec-car-release/` directory (named `dumpstatus.json`).
+
+Our pipeline will download required files from the Wikipedia mirror.
+
+### Deduplication
+
+Parargraph deduplication is enabled by default. You can switch off deduplication of similar paragraphs by setting `deduplicate ? false`. 
+
+We are using GloVE as part of our deduplication pipeline. If you are using with a different language, you will need to download and configure your language-specific GloVE version in `default.nix` below comment `# GloVe embeddings` 
+
+### Wikidata
+
+Identify the wikidata dump that is closest to the Wikipedia dump, we call it `${wikidumpdate}` below
+
+Download the wikidata dump with the following command and take note of the SHA
+
+`nix-prefetch-url https://dumps.wikimedia.your.org/wikidatawiki/entities/${wikidumpdate}/wikidata-${wikidumpdate}-all.json.bz2
+
+Configure the matching wikidata dump date and file SHA in `config.*.nix`, example
+
+* wikidata_dump_date = "20220103";
+* wikidata_dump_sha256 = "1dzxm740gm74wnb96bb8829gygkmqwwpzihbrljzrddr74hfpnch";
+
+
+Customize your conversion
+--------------------------
+
+The conversion will commence in the following passes. 
+
+1. dumps are downloaded and converted into raw pages
+2. content pages are identified, using predicates listed in `${globalConfig.dropPagesWithPrefix}` (all else)
+3. information from redirects and disambiguation pages are distilled into the metadata of article pages
+4. article pages are filtered into filteredPages. All pages that match the following predicates  are removed `${config.filterPagesWithPrefix}` and `${config.filterCategories}`. Furthermore all disambiguation pages and redirect pages are removed. The predicate list can be extended with `${config.filterpredicates}` (note only pages matching these predicates will be considered, unless inverted with the not operator) 
+5. benchmarks are derived from the filtered pages.
+
+The exact syntax for predicates can be taken from `./car-tools/trec-car-filter -h`
+
 
 
 Run conversion

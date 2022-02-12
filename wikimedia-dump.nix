@@ -17,11 +17,7 @@ let
   dumpStatus = stdenv.mkDerivation rec {
     name = "dump-${config.wiki_name}-${globalConfig.dump_date}-status";
     passthru.pathname = name;
-    src = fetchurl {
-      name = "dumpstatus.json";
-      url = "${root_url}/dumpstatus.json";
-      sha256 = null;
-    };
+    src = config.dumpStatus;
     buildCommand = ''
       mkdir $out
       cp $src $out/dumpstatus.json
