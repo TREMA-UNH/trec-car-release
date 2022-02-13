@@ -81,8 +81,8 @@
       category-contains " television series" |
       category-contains "テレビ番組のシリーズ" |
       category-contains " musicals" |
-      category-contains lミュージカル作品" |
-      category-contains l songs" |
+      category-contains "ミュージカル作品" |
+      category-contains " songs" |
       category-contains "の歌" |
       category-contains "の楽曲" |
       category-contains " singers" |
