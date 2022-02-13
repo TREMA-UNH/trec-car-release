@@ -43,10 +43,8 @@ Edit (or create) your language specific configuration file `config.*.nix` to adj
 
 Here an example for english (`en`):
 
-* `config.lang = "en"`
-* `import_config = ./config.en.yaml`
-* `globalConfig.version = "v2.6"`
 * `globalConfig.dump_date = "20220101"`  // yyyymmdd
+* `globalConfig.version = "v2.6"`
 
 You separately need `config.*.yaml` which defines language-specific template resolution of Wikipedia. If you are using a language that does not have an existing `config.$lang.yaml`, please create a matching language configuration based on our examples. Please use the same language mnemonics as Wikipedia.
 
