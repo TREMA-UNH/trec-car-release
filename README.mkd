@@ -25,7 +25,7 @@ Set `$bin` to the location of whree the `trec-car-create` binaries reside. For i
 export bin=$(pwd)/car-tools/bin
 ```
 
-Optionally set the variable `$toolsrepo` to the location of the trec-car-tools working directory
+Set the variable `$toolsrepo` to the location of the trec-car-tools working directory
 
 Make the `trec-car-create` tools available to the data-set build pipeline by calling:
 
@@ -56,9 +56,11 @@ You can hard code your configuration choice by changing the top of the file `def
 configFile ? ./config.en.nix   # change to a different file name
 ```
 
-#### Fetch dumpstatus
 
-Finally fetch the `dumpstatus.json` file of the dump which you are going to
+Fetching Dumpstatus
+---------------------
+
+Finally, fetch the `dumpstatus.json` file of the dump which you are going to
 ingest (e.g. <https://dumps.wikimedia.org/enwiki/20220101/dumpstatus.json>) and place it in
 the `trec-car-release/` directory (named `dumpstatus.json`).
 
