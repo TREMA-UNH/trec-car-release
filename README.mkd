@@ -27,11 +27,6 @@ export bin=$(pwd)/car-tools/bin
 
 Set the variable `$toolsrepo` to the location of the trec-car-tools working directory
 
-<<<<<<< HEAD
-
-
-=======
->>>>>>> origin/master
 Make the `trec-car-create` tools available to the data-set build pipeline by calling:
 
 ```bash
@@ -59,16 +54,11 @@ You can hard code your configuration choice by changing the top of the file `def
 configFile ? ./config.en.nix   # change to a different file name
 ```
 
-#### Fetch dumpstatus
 
-<<<<<<< HEAD
-Finally fetch the `dumpstatus.json` file of the dump which you are going to
-=======
 Fetching Dumpstatus
 ---------------------
 
 Finally, fetch the `dumpstatus.json` file of the dump which you are going to
->>>>>>> enwiki2022
 ingest (e.g. <https://dumps.wikimedia.org/enwiki/20220101/dumpstatus.json>) and place it in
 the `trec-car-release/` directory (named `dumpstatus.json`).
 
