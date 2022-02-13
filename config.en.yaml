@@ -86,6 +86,9 @@ infoboxTemplates:
 
 pageTagTemplates:
   VA: "Vital article"
+  WP:VA: "Vital article"
+  WP:VITAL: "Vital article"
+  vital articles level 3: "Vital article"
   Vital article: "Vital article"  
   good article: "Good article"
   GA : "Good article"
