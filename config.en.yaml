@@ -81,4 +81,14 @@ disambiguationTemplates: # Q6148868
   # look up language specific template in https://www.wikidata.org/wiki/Q6148868
   #
 infoboxTemplates:                                                                                                                                                                                              
-  - infobox     
+  - infobox
+  - speciesbox  
+
+pageTagTemplates:
+  VA: "Vital article"
+  Vital article: "Vital article"  
+  good article: "Good article"
+  GA : "Good article"
+  Featured articles: "Featured articles"    
+
+
