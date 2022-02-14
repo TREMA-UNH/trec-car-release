@@ -77,7 +77,7 @@
       category-contains "lists of "
     '';
 
-    filterPredicates = "!(${config.filterPagesWithPrefix}) & !is-redirect  & ( !is-disambiguation)";
+    filterPredicates = "!(${filterPagesWithPrefix}) & !is-redirect  & ( !is-disambiguation)";
 
     pageProcessing = "--lead --image --shortHeading --longHeading --shortpage ${forbiddenHeadings}";
 

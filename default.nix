@@ -1,4 +1,4 @@
-{ configFile ? ./config.simple.nix, dumpTest ? false, deduplicate ? false, exportJsonlGz ? false, exportCbor ? true, exportJsonlSplits ? true, exportFull ? false }:
+{ configFile ? ./config.en.nix, dumpTest ? false, deduplicate ? false, exportJsonlGz ? false, exportCbor ? true, exportJsonlSplits ? true, exportFull ? false }:
 
 let
   sources = import ./nix/sources.nix;
