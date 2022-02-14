@@ -3,10 +3,10 @@
 {
   config = rec {
     productName = "trec-car";
-    lang = "en";
+    lang = "simple";
     wiki_name = "${lang}wiki";
     mirror_url = http://dumps.wikimedia.your.org/;
-    import_config = ./config.en.yaml;
+    import_config = ./config.simple.yaml;
     dumpStatus = ./dumpstatus.json;
 
     # if lost, ressurect from here: jelly:/mnt/grapes/datasets/trec-car/duplicates.v1.5-table.xz
@@ -29,6 +29,7 @@
       "other"
       "external links and references"
       "notes and references"
+      "related pages"   # this is specific to simple English Wikipedia
     ];
 
     transformArticle = "${forbiddenHeadings}";
@@ -79,7 +80,7 @@
 
     filterPredicates = "!(${filterPagesWithPrefix}) & !is-redirect  & ( !is-disambiguation)";
 
-    pageProcessing = "--lead --image --shortHeading --longHeading --shortpage ${forbiddenHeadings}";
+    pageProcessing = "--lead --image --shortHeading --longHeading --shortpage ${forbiddenHeadings}"; 
 
     benchmarkY1titles = ./benchmarkY1.titles;
     test200titles = ./test200.titles;
