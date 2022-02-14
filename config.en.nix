@@ -77,7 +77,9 @@
       category-contains "lists of "
     '';
 
-    filterPredicates = " !is-disambiguation";
+    filterPredicates = "!(${config.filterPagesWithPrefix}) & !is-redirect  & ( !is-disambiguation)";
+
+    pageProcessing = "--lead --image --shortHeading --longHeading --shortpage ${forbiddenHeadings}";
 
     benchmarkY1titles = ./benchmarkY1.titles;
     test200titles = ./test200.titles;
@@ -104,8 +106,7 @@
        predicate = "has-page-tag [\"Good article\"]";
      }
      { name = "US-history";
-     predicate = "(category-contains \"history\" & category-contains \"nited\" & category-contains \"tates\")";
-      #predicate = "( category-contains \"history of the united states\" )";
+      predicate = "( category-contains \"history of the united states\" )";
       # predicate = "( category-contains \" history\" & category-contains \" united states\" )";
     }
     { name = "car-train-large";
