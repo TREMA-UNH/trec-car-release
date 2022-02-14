@@ -81,8 +81,8 @@
 
     pageProcessing = "--lead --image --shortHeading --longHeading --shortpage ${forbiddenHeadings}";
 
-    benchmarkY1titles = ./benchmarkY1.titles;
-    test200titles = ./test200.titles;
+    benchmarkY1qids = ./benchmarkY1.qids;
+    test200qids = ./test200.qids;
 
     # For 01/01/2022 only very few articles are tagges with "Vital Article" instead we:
     # Create a list of vital pages created with wikidata sparql query
@@ -90,14 +90,14 @@
     # using https://query.wikidata.org/
     vitalArticleQids = ./vital-articles.qids;
 
-    # type BenchmarkDef = { name :: String, titleList :: String, predicate :: String }
+    # type BenchmarkDef = { name :: String, predicate :: String }
     # benchmarks :: List BenchmarkDef
     benchmarks = [
       {name = "benchmarkY1";
-       predicate = "name-or-redirect-set-from-file \"${benchmarkY1titles}\"";
+       predicate = "qid-set-from-file \"${benchmarkY1qids}\"";
       }
       {name = "test200";
-       predicate = "name-or-redirect-set-from-file \"${test200titles}\"";
+       predicate = "qid-set-from-file \"${test200qids}\"";
      }
      { name = "vital-articles";
       predicate = "qid-set-from-file \"${vitalArticleQids}\"";
@@ -113,7 +113,7 @@
     }
    ];
 
-    butBenchmarkPredicate = "((! name-or-redirect-set-from-file  \"${test200titles}\") & (! name-or-redirect-set-from-file \"${benchmarkY1titles}\") )";
+    butBenchmarkPredicate = "((! qid-set-from-file \"${benchmarkY1qids}\" ) & (! qid-set-from-file \"${test200qids}\" ))";
   };
 
   globalConfig = rec {
