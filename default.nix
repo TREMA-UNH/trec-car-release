@@ -1,4 +1,4 @@
-{ configFile ? ./config.ja.nix, dumpTest ? false, deduplicate ? false, exportJsonlGz ? false, exportCbor ? true, exportJsonlSplits ? true, exportFull ? false }:
+{ configFile, dumpTest ? false, deduplicate ? false, exportJsonlGz ? false, exportCbor ? true, exportJsonlSplits ? true, exportFull ? false }:
 
 let
   sources = import ./nix/sources.nix;
