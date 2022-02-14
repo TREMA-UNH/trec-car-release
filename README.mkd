@@ -61,6 +61,7 @@ Fetching Dumpstatus
 ---------------------
 
 Finally, fetch the `dumpstatus.json` file of the dump which you are going to
+
 ingest (e.g. <https://dumps.wikimedia.org/enwiki/20220101/dumpstatus.json>) and place it in
 the `trec-car-release/` directory (named `dumpstatus.json`).
 
