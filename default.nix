@@ -1,4 +1,4 @@
-{ configFile ? ./config.en.nix, dumpTest ? false, deduplicate ? false, exportJsonlGz ? false, exportCbor ? true, exportJsonlSplits ? true, exportFull ? false }:
+{ configFile ? ./config.ja.nix, dumpTest ? false, deduplicate ? false, exportJsonlGz ? false, exportCbor ? true, exportJsonlSplits ? true, exportFull ? false }:
 
 let
   sources = import ./nix/sources.nix;
@@ -301,7 +301,7 @@ in rec {
   # 2. Drop aministrative headings and category links
   processedArticles =
     let
-      transformUnproc = "--lead --image --shortHeading --longHeading --shortpage ${config.forbiddenHeadings}";
+      transformUnproc = "${config.pageProcessing}"; #"--lead --image --shortHeading --longHeading --shortpage ${config.forbiddenHeadings}";
     in mkDerivation {
       name = "proc.articles.cbor";
       passthru.pathname = "car.cbor";
@@ -404,7 +404,7 @@ in rec {
   # 3. Drop pages of forbidden categories
   filtered =
     let
-      preds = '' (!(${globalConfig.dropPagesWithPrefix}) & !(${config.filterPagesWithPrefix}) & !is-redirect  & (${config.filterPredicates})) '';
+      preds = '' (!(${globalConfig.dropPagesWithPrefix}) & ${config.filterPredicates}) '';
     in filterPages "filtered.cbor" dedupArticles preds "filtered.cbor";
 
   # 4. Drop, images, long/short sections, articles with <3 sections --(dont drop lead anymore!!)
@@ -757,6 +757,22 @@ in rec {
         )));
   };
 
+  collectionPackages = symlink-tree.mkSymlinkTree {
+    name = config.productName;
+    components = 
+      let cfg = defExportCfg;
+      in symlink-tree.directory ( #unionAttrs ( map symlinkDrv 
+      { 
+       #"unprocessedTrain" = symlink-tree.symlink (pagesTocFile unprocessedTrain);
+       "paragraphCorpusPackage" = symlink-tree.symlink (paragraphCorpusPackage cfg);
+       "benchmarks" =  symlink-tree.symlink (customBenchmarkArchives); 
+       #"unprocessedTrainPackage" = symlink-tree.symlink (unprocessedTrainPackage cfg);
+       #"unprocessedAllPackage" = symlink-tree.symlink (unprocessedAllPackage cfg);
+       "unprocessedAllButBenchmarkPackage" = symlink-tree.symlink (unprocessedAllButBenchmarkPackage cfg);
+      }
+     );
+  };
+  
   allPackages = symlink-tree.mkSymlinkTree {
     name = config.productName;
     components = 
@@ -765,7 +781,6 @@ in rec {
       { 
        "unprocessedTrain" = symlink-tree.symlink (pagesTocFile unprocessedTrain);
        "paragraphCorpusPackage" = symlink-tree.symlink (paragraphCorpusPackage cfg);
-       #"trainLargePackage" = symlink-tree.symlink (trainLargePackageCfg cfg);
        "benchmarks" =  symlink-tree.symlink (customBenchmarkArchives); 
        "unprocessedTrainPackage" = symlink-tree.symlink (unprocessedTrainPackage cfg);
        "unprocessedAllPackage" = symlink-tree.symlink (unprocessedAllPackage cfg);
