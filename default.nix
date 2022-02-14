@@ -256,11 +256,16 @@ in rec {
   test200RedirectedTitles = redirectedTitles {pages = articles; titles = test200titles;};
 
 
-  # unprocessedAllButBenchmark = filterPages "allbutbenchmark" articles "((! name-or-redirect-set-from-file  \"${test200titles}\") & (! name-or-redirect-set-from-file \"${benchmarkY1titles}\"))" "unprocessedAllButBenchmark.cbor";
+  # 1. Drop non-article pages
+  articles =
+    filterPages "articles" unprocessedAll "(!is-disambiguation & !is-category)" "articles.cbor";
+
+  articlesWithToc = pagesTocFile articles;
+  
   unprocessedAllButBenchmark = 
    filterPages "allbutbenchmark" articles "${config.butBenchmarkPredicate}" "unprocessedAllButBenchmark.cbor";
-   unprocessedAllButBenchmarkPackage = cfg: pageFoldsPackages ({pages = unprocessedAllButBenchmark; name = "unprocessedAllButBenchmark";} // cfg);
-   unprocessedAllButBenchmarkArchive = cfg: buildArchive "unprocessedAllButBenchmark" (unprocessedAllButBenchmarkPackage cfg);
+  unprocessedAllButBenchmarkPackage = cfg: pageFoldsPackages ({pages = unprocessedAllButBenchmark; name = "unprocessedAllButBenchmark";} // cfg);
+  unprocessedAllButBenchmarkArchive = cfg: buildArchive "unprocessedAllButBenchmark" (unprocessedAllButBenchmarkPackage cfg);
 
 
   unprocessedPackage = cfg: symlink-tree.mkSymlinkTree {
@@ -272,13 +277,6 @@ in rec {
     );
   };
 
-
-  # 1. Drop non-article pages
-  articles =
-    filterPages "articles" unprocessedAll "(!is-disambiguation & !is-category)" "articles.cbor";
-
-  articlesWithToc = pagesTocFile articles;
-  
   importDumpDebug = symlink-tree.mkSymlinkTree {
     name = "importDebugDebug";
     components =
@@ -763,12 +761,9 @@ in rec {
       let cfg = defExportCfg;
       in symlink-tree.directory ( #unionAttrs ( map symlinkDrv 
       { 
-       #"unprocessedTrain" = symlink-tree.symlink (pagesTocFile unprocessedTrain);
        "paragraphCorpusPackage" = symlink-tree.symlink (paragraphCorpusPackage cfg);
        "benchmarks" =  symlink-tree.symlink (customBenchmarkArchives); 
-       #"unprocessedTrainPackage" = symlink-tree.symlink (unprocessedTrainPackage cfg);
-       #"unprocessedAllPackage" = symlink-tree.symlink (unprocessedAllPackage cfg);
-       "unprocessedAllButBenchmarkPackage" = symlink-tree.symlink (unprocessedAllButBenchmarkPackage cfg);
+       #"unprocessedAllButBenchmarkPackage" = symlink-tree.symlink (unprocessedAllButBenchmarkPackage cfg);
       }
      );
   };
