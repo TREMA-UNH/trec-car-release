@@ -46,8 +46,7 @@
     transformArticle = "${forbiddenHeadings}";
 
 
-
-   filterPagesWithPrefix = ''
+    filterPagesWithPrefix = ''
       name-has-prefix "Category:" |
       name-has-prefix "Portal:" |
       name-has-prefix "List of " |
@@ -55,7 +54,8 @@
       name-has-suffix "一覧" |
       name-has-suffix "年表"
     '';
-    carFilterCategories= ''
+
+    carFilterCategories = ''
       category-contains " births" |
       category-contains "誕生" |
       category-contains "deaths" |
@@ -124,7 +124,9 @@
 
 
     
-    filterPredicates = " !is-disambiguation";
+    filterPredicates = "!(${filterPagesWithPrefix}) & !is-redirect  & ( !is-disambiguation)";
+
+    pageProcessing = "--lead --image --shortHeading --longHeading --shortpage ${forbiddenHeadings}";
 
     benchmarkY1qids = ./benchmarkY1.qids;
     test200qids = ./test200.qids;
@@ -164,7 +166,7 @@
     wikidata_dump_date = "20220103";
     wikidata_dump_sha256 = "1dzxm740gm74wnb96bb8829gygkmqwwpzihbrljzrddr74hfpnch";
     lang_index = "lang-index";
-    dropPagesWithPrefix= ''
+    dropPagesWithPrefix = ''
       name-has-prefix "Category talk:" |
       name-has-prefix "Talk:" |
       name-has-prefix "File:" |
