@@ -763,7 +763,7 @@ in rec {
       { 
        "paragraphCorpusPackage" = symlink-tree.symlink (paragraphCorpusPackage cfg);
        "benchmarks" =  symlink-tree.symlink (customBenchmarkArchives); 
-       #"unprocessedAllButBenchmarkPackage" = symlink-tree.symlink (unprocessedAllButBenchmarkPackage cfg);
+       "unprocessedAllButBenchmarkPackage" = symlink-tree.symlink (unprocessedAllButBenchmarkPackage cfg);
       }
      );
   };
