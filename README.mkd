@@ -30,8 +30,10 @@ Set the variable `$toolsrepo` to the location of the trec-car-tools working dire
 Make the `trec-car-create` tools available to the data-set build pipeline by calling:
 
 ```bash
-./update-tools.sh 
+./update-tools.sh $configFile
 ```
+
+Where `$configFile` is the file `config.$lang.nix` you will be configuring in the next step. To set up, you can use `config.en.nix`.
 
 Background: semantic changes in our `trec-car-create` tools are reflected in the version report by the `--tool-version` flag supported by each tool. Should the version change, necessary parts of the pipeline will be automatically re-run.
 
@@ -48,7 +50,7 @@ Here an example for english (`en`):
 
 You separately need `config.*.yaml` which defines language-specific template resolution of Wikipedia. If you are using a language that does not have an existing `config.$lang.yaml`, please create a matching language configuration based on our examples. Please use the same language mnemonics as Wikipedia.
 
-You can hard code your configuration choice by changing the top of the file `default.nix` as follows:
+In subsequent calls to `.run.sh` you will be passing in this config file on the command line. Alternatively you can hard code your configuration choice by changing the top of the file `default.nix` as follows:
 
 ```nix
 configFile ? ./config.en.nix   # change to a different file name
@@ -106,9 +108,11 @@ While technically you can call `nix-build` directly, we recommend you call it th
 
 The following commands support a test mode (where you will only use the first file of the Wikipedia dump) by adding the parameter `--arg dumpTest true`.
 
-You can also change the config file (or deduplication mode) with `--arg configFile ./config.en.nix`
+You will have to pass in the config file with `--arg configFile ./config.en.nix`
 
 To limit the number of cores used by the conversion to `$n` by adding the parameter `--cores $n` 
+
+To enable deduplication run with `--arg deduplicate True`.
 
 
 ### Create Wikipedia dump
@@ -116,7 +120,7 @@ To limit the number of cores used by the conversion to `$n` by adding the parame
 To produce a car-style dump of Wikipedia. Necessary files will automatically be downloaded. 
 
 ```bash
-./run.sh dump
+./run.sh dump --arg configFile $configFile
 ```
 
 your results will be collected in `result-dump`
@@ -126,7 +130,7 @@ your results will be collected in `result-dump`
 
 Create a dump with filtering, deduplication, outlines, paragraph corpus, and automatic ground truth, call
 
-`./run.sh all`
+`./run.sh all --arg configFile $configFile`
 
 your links to your results will be collected in  `result-all`
 

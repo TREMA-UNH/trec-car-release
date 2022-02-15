@@ -3,10 +3,11 @@
 #bin=/home/ben/trec-car/mediawiki-annotate-release/bin
 if [ -z "$bin" ]; then echo "set \$bin to directory with trec-car-create binaries"; exit 1; fi
 if [ -z "$toolsrepo" ]; then echo "set \$toolsrepo to the git repository of trec-car-create"; exit 1; fi
+if [ -z "$1" ]; then echo "run with `$0 \$configFile.nix`"; exit 1; fi
 
 echo "toolsrepo=$toolsrepo"
 
-tools=$(nix eval --extra-experimental-features nix-command --raw -f . carToolFiles)
+tools=$(nix eval --extra-experimental-features nix-command --raw -f . carToolFiles --arg configFile $1)
 
 rm -vRf car-tools
 mkdir -p car-tools
