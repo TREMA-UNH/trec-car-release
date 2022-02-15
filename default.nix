@@ -1,4 +1,4 @@
-{ configFile, dumpTest ? false, deduplicate ? false, exportJsonlGz ? false, exportCbor ? true, exportJsonlSplits ? true, exportFull ? false }:
+{ configFile, dumpTest ? false, deduplicate ? false, exportJsonlGz ? false, exportCbor ? true, exportJsonlSplits ? true, exportFull ? true }:
 
 let
   sources = import ./nix/sources.nix;
@@ -258,7 +258,7 @@ in rec {
 
   # 1. Drop non-article pages
   articles =
-    filterPages "articles" unprocessedAll "(!is-disambiguation & !is-category)" "articles.cbor";
+    filterPages "articles" unprocessedAll "(!is-redirect & !is-disambiguation & !is-category)" "articles.cbor";
 
   articlesWithToc = pagesTocFile articles;
   
