@@ -30,10 +30,10 @@ Set the variable `$toolsrepo` to the location of the trec-car-tools working dire
 Make the `trec-car-create` tools available to the data-set build pipeline by calling:
 
 ```bash
-./update-tools.sh $configFile
+./update-tools.sh ./$configFile
 ```
 
-Where `$configFile` is the file `config.$lang.nix` you will be configuring in the next step. To set up, you can use `config.en.nix`.
+Where `$configFile` is the file `config.$lang.nix` you will be configuring in the next step. To set up, you can use `config.en.nix`. (It is important to include  `./`)
 
 Background: semantic changes in our `trec-car-create` tools are reflected in the version report by the `--tool-version` flag supported by each tool. Should the version change, necessary parts of the pipeline will be automatically re-run.
 
