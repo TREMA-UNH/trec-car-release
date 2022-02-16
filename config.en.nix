@@ -111,6 +111,9 @@
     { name = "car-train-large";
     predicate = "( train-set ) & (! (${carFilterCategories}) )";
     }
+    { name = "horseshoe-crab";
+      predicate = "qid-in-set [\"Q1329239\"]";
+    }
    ];
 
     butBenchmarkPredicate = "((! qid-set-from-file \"${benchmarkY1qids}\" ) & (! qid-set-from-file \"${test200qids}\" ))";
