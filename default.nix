@@ -66,7 +66,9 @@ in rec {
       ${carTools.build_toc} page-redirects $out/pages.cbor
       ${carTools.build_toc} page-qids $out/pages.cbor
     '';
+    # ${carTools.build_toc} qid-names $out/pages.cbor
   };
+
 
   parasTocFile = parasFile: mkDerivation rec {
     name = "${parasFile}.toc";
@@ -243,6 +245,17 @@ in rec {
   };
 
   unprocessedAll = pagesWithQids disambiguatedPages;
+  pageNames2QidLookup = pages : mkDerivation {  # todo LD
+    name = "page-names-2-qid-lookup";
+    passthru.pathname = "toc";
+    buildCommand = ''
+      mkdir $out
+      ln -s ${pages}/* $out
+      ${carTools.build_toc} qid-names $out/pages.cbor
+      '';
+      # ${carTools.dump} convert-page-qids ${pages}/pages.cbor $out/$outname 
+    };
+  allNames2QidLookup = pageNames2QidLookup unprocessedAll; # todo LD
 
   # todo: fix order of definition (articles is defined below)
   unprocessedTrain = filterPages "unprocessed-trainLarge" articles "(train-set)" "unprocessedTrain.cbor";
@@ -734,7 +747,17 @@ in rec {
       }
      // lib.optionalAttrs deduplicate (symlinkDrv deduplicationArchive)
      );
-  };
+   };
+
+   allWithToc = symlink-tree.mkSymlinkTree {  
+     name = "${config.productName}-all-toc";
+     components = symlink-tree.directory (
+       unionAttrs (map symlinkDirDrv (
+         [(pagesTocFile unprocessedAll)]
+         )
+         ));
+       };
+
 
   dumpDetails = symlink-tree.mkSymlinkTree {
     name = "${config.productName}-all-detailed";
