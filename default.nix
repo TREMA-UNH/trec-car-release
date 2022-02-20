@@ -49,6 +49,9 @@ let
 in rec {
   inherit carTools lib;
   defExportCfg = { exportJsonlGz = exportJsonlGz; exportCbor = exportCbor; exportJsonlSplits = exportJsonlSplits; exportFull = exportFull; };
+  jsonlExportCfg =  { exportJsonlGz = false; exportCbor = false; exportJsonlSplits = true; exportFull = false; };
+  cborExportCfg = { exportJsonlGz = false; exportCbor = true; exportJsonlSplits = false; exportFull = true; };
+
 
   carToolFiles = lib.concatStringsSep "\n" (lib.attrValues carToolNames);
 
@@ -677,6 +680,11 @@ in rec {
   benchmarkY1testPublicArchive = cfg: buildArchive "benchmarkY1test.public" (benchmarkY1Package cfg).testPublicPackage;
 
 
+  unprocessedAllArchiveJsonl = unprocessedAllArchive jsonlExportCfg;
+  unprocessedAllArchiveCbor = unprocessedAllArchive  cborExportCfg;
+
+
+
 
 
   benchmarkArchive = {name, titleList ? null, qidList ? null, predicate ? null}:  
@@ -788,19 +796,36 @@ in rec {
         )));
   };
 
-  collectionPackages = symlink-tree.mkSymlinkTree {
+  collectionPackagesCfg = cfg: symlink-tree.mkSymlinkTree {
     name = config.productName;
     components = 
-      let cfg = defExportCfg;
-      in symlink-tree.directory ( #unionAttrs ( map symlinkDrv 
+      symlink-tree.directory ( #unionAttrs ( map symlinkDrv 
       { 
        "paragraphCorpusPackage" = symlink-tree.symlink (paragraphCorpusPackage cfg);
        "benchmarks" =  symlink-tree.symlink (customBenchmarkArchives); 
        "unprocessedAllButBenchmarkPackage" = symlink-tree.symlink (unprocessedAllButBenchmarkPackage cfg);
       }
      );
-  };
-  
+   };
+  collectionPackages = collectionPackages defExportCfg;
+
+  collectionArchive = cfg:  buildArchive "collection" (collectionPackagesCfg cfg);
+
+  collectionArchiveJsonl = collectionArchive jsonlExportCfg;
+  collectionArchiveCbor = collectionArchive cborExportCfg;
+
+
+  mainArchives = symlink-tree.mkSymlinkTree {  
+    name = config.productName;
+    components = symlink-tree.directory ({
+      "unprocessedAllArchiveJsonl" = symlink-tree.symlink (unprocessedAllArchiveJsonl);       
+      "unprocessedAllArchiveCbor" = symlink-tree.symlink (unprocessedAllArchiveCbor); 
+      "collectionArchiveJsonl" = symlink-tree.symlink (collectionArchiveJsonl);
+      "collectionArchiveCbor" = symlink-tree.symlink (collectionArchiveCbor); 
+      });
+    };
+
+
   allPackages = symlink-tree.mkSymlinkTree {
     name = config.productName;
     components = 
