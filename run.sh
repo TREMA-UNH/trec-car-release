@@ -8,7 +8,7 @@ output="results/result-$name-$(date -Iseconds)"
 
 # $max-jobs is number of jobs run in parallel, each job can use $cores many cpus
 #nix-build . -A $name -o $output  --option cores 1 --option max-jobs 1 $@
-nix build -f . -o $output $name --option cores 2 --option max-jobs 8 --option sandbox false --show-trace --extra-experimental-features nix-command $@
+nix build -f . -o $output $name --option cores 2 --option max-jobs 8 --option sandbox false --extra-experimental-features nix-command $@
 
 # create result directory with softlinks
 rm -f result-$name
