@@ -246,16 +246,26 @@ in rec {
 
   unprocessedAll = pagesWithQids disambiguatedPages;
   pageNames2QidLookup = pages : mkDerivation {  # todo LD
-    name = "page-names-2-qid-lookup";
-    passthru.pathname = "toc";
+    name = "en-page-title-to-qid";
+    passthru.pathname = "en-page-title-to-qid.tsv.gz";
+    buildCommand = ''
+      mkdir $out
+      ln -s ${pages}/* $out
+      ${carTools.build_toc} -t qid-names $out/pages.cbor
+      '';
+    };
+  pageNames2QidToc = pages : mkDerivation {  # todo LD
+    name = "name2qid.toc";
+    passthru.pathname = "${pages.pathname}.qid2name";
     buildCommand = ''
       mkdir $out
       ln -s ${pages}/* $out
       ${carTools.build_toc} qid-names $out/pages.cbor
       '';
-      # ${carTools.dump} convert-page-qids ${pages}/pages.cbor $out/$outname 
     };
-  allNames2QidLookup = pageNames2QidLookup unprocessedAll; # todo LD
+
+    
+  allNames2QidLookup = pageNames2QidLookup (unprocessedAll); # todo LD
 
   # todo: fix order of definition (articles is defined below)
   unprocessedTrain = filterPages "unprocessed-trainLarge" articles "(train-set)" "unprocessedTrain.cbor";
@@ -878,6 +888,21 @@ in rec {
         ${carTools.export-cluster-benchmark} ${toc}/pages.cbor --${mode} $out/${output}
       '';
     };
+  exportBenchmark' = {mode, output, pathname ? output, name, pagesFile, qidBasePages ? unprocessedAll}:
+    let toc = pagesTocFile pagesFile;
+        qidToc = pageNames2QidToc qidBasePages;
+    in mkDerivation {
+      name = "export-${mode}-${name}";
+      buildInputs = [ toc ];
+      passthru.pathname = pathname;
+      buildCommand = ''
+        mkdir $out
+        ${carTools.export-cluster-benchmark} ${toc}/pages.cbor --qid2name ${qidToc}/pages.cbor.qid2name --${mode} $out/${output}
+      '';
+    };
+
+
+
   exportClusterBenchmark = mode: output: name: pagesFile:
     exportBenchmark {
       mode = mode;
@@ -887,7 +912,7 @@ in rec {
       pagesFile = pagesFile;
     };
   exportEntityLinkingBenchmark =  output: name: pagesFile:
-    exportBenchmark {
+    exportBenchmark' {
       mode = "entity-linking";
       output = "${output}.entity-linking.jsonl.gz";
       pathname = "${baseNameOf pagesFile.pathname}-${output}.jsonl.gz";
