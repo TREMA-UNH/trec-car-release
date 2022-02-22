@@ -1,20 +1,17 @@
-WIKIMARKS Conversion Pipeline
+Wikimarks Conversion Pipeline
 =============================
 
-Convert Wikipedia dumps in various languages and harvest automatic relevance benchmarks (so-called wikimarks).
+Convert Wikipedia dumps in various languages and harvest automatic relevance benchmarks (so-called Wikimarks).
 
 Formerly, the project was designed to provide datasets for the TREC CAR track (which concluded in 2019). Since then, the project has been further developed to include
 
 - converting any Wikipedia
 - multi-lingual support (see `config.$lang.nix` and `config.$lang.yaml`)
-- JSONL-based output formats (in addition to CBOR formats)
-- including Wikidata QIDs
+- a more accessible JSONL-based output format (in addition to the CBOR format used during TREC CAR)
+- inclusion of the Wikidata QIDs associated with each page
 - configurable article subsets for benchmarks
-- additional wikimarks for query-specific clustering and entity linking (in addition to retrieval)
-- support for incorporating custom wikimarks
-
-
-
+- additional Wikimarks for query-specific clustering and entity linking (in addition to retrieval)
+- support for incorporation of custom Wikimarks
 
 
 Required tools and libraries
