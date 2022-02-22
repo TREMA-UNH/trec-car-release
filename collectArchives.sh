@@ -6,3 +6,9 @@ tar -chvf /home/ben/trec-car/data/wiki2022-${1}-collectionCbor.tar collectionCbo
 tar -chvf /home/ben/trec-car/data/wiki2022-${1}-collectionJsonl.tar collectionJsonl/* 
 popd
 
+pxz /home/ben/trec-car/data/wiki2022-${1}-unprocessedAllJsonl.tar &
+pxz /home/ben/trec-car/data/wiki2022-${1}-unprocessedAllCbor.tar &
+pxz /home/ben/trec-car/data/wiki2022-${1}-collectionCbor.tar &
+pxz /home/ben/trec-car/data/wiki2022-${1}-collectionJsonl.tar &
+
+
