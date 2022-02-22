@@ -73,8 +73,8 @@ configFile ? ./config.en.nix   # change to a different file name
 ```
 
 
-Fetching Dumpstatus
----------------------
+Fetching `dumpstatus.json`
+---------------------------
 
 Finally, fetch the `dumpstatus.json` file of the dump which you are going to
 ingest (e.g. <https://dumps.wikimedia.org/enwiki/20220101/dumpstatus.json>) and place it in
@@ -94,12 +94,16 @@ Identify the wikidata dump that is closest to the Wikipedia dump, we call it `${
 
 Download the wikidata dump with the following command and take note of the SHA
 
-`nix-prefetch-url https://dumps.wikimedia.your.org/wikidatawiki/entities/${wikidumpdate}/wikidata-${wikidumpdate}-all.json.bz2
+```
+nix-prefetch-url https://dumps.wikimedia.your.org/wikidatawiki/entities/${wikidumpdate}/wikidata-${wikidumpdate}-all.json.bz2
+```
 
 Configure the matching wikidata dump date and file SHA in `config.*.nix`, example
 
-* wikidata_dump_date = "20220103";
-* wikidata_dump_sha256 = "1dzxm740gm74wnb96bb8829gygkmqwwpzihbrljzrddr74hfpnch";
+```nix
+wikidata_dump_date = "20220103";
+wikidata_dump_sha256 = "1dzxm740gm74wnb96bb8829gygkmqwwpzihbrljzrddr74hfpnch";
+```
 
 
 Customize your conversion
@@ -158,7 +162,9 @@ We recommend you first build a dump, then rerun with `main`. The dump will be au
 
 To automatically compress packages with xz for distribution, call
 
-`./run.sh mainArchives --arg configFile $configFile`     
+```
+./run.sh mainArchives --arg configFile $configFile
+```
 
 
 
@@ -175,12 +181,12 @@ rsync -L result-main $yourTargetDir
 
 nix tracks which files can be purged from its store through softlinks. Only when the last link (created through nix) is deleted, it will remove the build products. Until then it slowly eats up all hard drive space.
 
-Delete target directories of this (and previous failed attempts) in results/...-$date
+Delete target directories of this (and previous failed attempts) in `results/...-$date`
 
 call the garbage collector of nix
 
 ```
-nix-gc
+nix-store --gc
 ```
 
 
