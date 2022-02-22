@@ -274,6 +274,8 @@ in rec {
   unprocessedTrain = filterPages "unprocessed-trainLarge" articles "(train-set)" "unprocessedTrain.cbor";
   unprocessedTrainPackage = cfg: pageFoldsPackages ({ pages = unprocessedTrain; name = "unprocessedTrainLarge";} // cfg);
   unprocessedAllPackage = cfg: pagesPackages ({pages = unprocessedAll; name = "unprocessedAll";} // cfg);
+  dump = unprocessedAllPackage cborExportCfg;
+  dumpJsonl = unprocessedAllPackage jsonlExportCfg;
   
   test200titles=./test200.titles;
   benchmarkY1titles=./benchmarkY1.titles;
@@ -470,19 +472,19 @@ in rec {
     buildCommand = ''
       mkdir $out
       cat <<EOF >$out/README.mkd
-      # TREC CAR ${globalConfig.version}
+      # Wikimarks / TREC CAR ${globalConfig.version}
 
-      This data set is part of the TREC CAR dataset version ${globalConfig.version}.
+      This data set is part of the Wikimarks dataset version ${globalConfig.version}.
 
-      The included TREC CAR data sets by Laura Dietz, Ben Gamari available
-      at `trec-car.cs.unh.edu` are provided under a <a rel="license"
+      The included data sets by Laura Dietz, Ben Gamari available at 
+      `https://trema-unh.github.io/wikimarks` are provided under a <a rel="license"
       href="http://creativecommons.org/licenses/by-sa/3.0/deed.en_US">Creative
       Commons Attribution-ShareAlike 3.0 Unported License</a>. The data is
       based on content extracted from <https://dumps.wikipedia.org/> that is
       licensed under the Creative Commons Attribution-ShareAlike 3.0 Unported
       License.
 
-      trec-car-create:
+      software:
         $(echo ${builtins.readFile ./car-tools/tools-commit})
         in git repos ${builtins.readFile ./car-tools/tools-remote}
 
@@ -503,6 +505,7 @@ in rec {
   };
 
   # 8. Package
+  # Obsolete. Formerly used in CAR, now replaced with customizable benchmark
   trainLargePackageCfg = cfg: (benchmarkPackages ({basePages = baseTrain; name = "train-large-package";} // cfg)).trainPackage;
   trainLargeArchive = cfg: buildArchive "train-large" (trainLargePackageCfg cfg);
   trainLargePackage = trainLargePackageCfg defExportCfg;
@@ -606,10 +609,6 @@ in rec {
                   then filterPages "filtered-benchmark-${name}" basePages ''(${predicate})'' "pages.cbor" 
                   else basePages;
 
-#      if (titleList == null  && predicates == null)
-#                then basePages
-#                else filterPages "filtered-benchmark-${name}" basePages ''(name-or-redirect-set-from-file "${titleList}")'' "pages.cbor" ;
-
         test  = filterPages "${name}-test.cbor" pages "(test-set)" "test.pages.cbor";
         train = filterPages "${name}-train.cbor" pages "(train-set)" "train.pages.cbor";
         trainFolds = toFolds "${name}-train" train;
@@ -687,8 +686,8 @@ in rec {
 
 
 
-  benchmarkArchive = {name, titleList ? null, qidList ? null, predicate ? null}:  
-    let cfg = defExportCfg;
+  benchmarkArchive = {name, titleList ? null, qidList ? null, predicate ? null}: cfg:  
+    let  #  cfg = defExportCfg;
     benchmarkPkg = benchmarkPackages ({basePages = base; name = name; titleList = titleList; predicate = predicate;} // cfg);
 
     in symlink-tree.mkSymlinkTree {
@@ -703,17 +702,18 @@ in rec {
        );
     };
 
-  # customBenchmark :: AttrSet String BenchmarkDef -> Derivation
-  customBenchmark = benchmarkDefList:
+  # customBenchmark :: AttrSet String BenchmarkDef -> Config -> Derivation
+  customBenchmark = benchmarkDefList: cfg:
     symlink-tree.mkSymlinkTree {
       name = "customBenchmarks"; 
       components =
           symlink-tree.directory (
-            lib.listToAttrs (map (b: lib.nameValuePair b.name (symlink-tree.symlink (benchmarkArchive b))) benchmarkDefList)
+            lib.listToAttrs (map (b: lib.nameValuePair b.name (symlink-tree.symlink (benchmarkArchive b cfg))) benchmarkDefList)
+            // symlinkDrv readme
           );
   };
 
-  customBenchmarkArchives = customBenchmark config.benchmarks;
+  customBenchmarkArchives = cfg: customBenchmark config.benchmarks cfg;
 
 
   allBasePackages = symlink-tree.mkSymlinkTree {
@@ -731,7 +731,7 @@ in rec {
        "disambiguatedPages" = symlink-tree.symlink (pagesTocFile disambiguatedPages);
        "paragraphCorpusPackage" = symlink-tree.symlink (paragraphCorpusPackage cfg);
        "trainLargePackage" = symlink-tree.symlink (trainLargePackageCfg cfg);
-       "benchmarks" =  symlink-tree.symlink (customBenchmarkArchives); 
+       "benchmarks" =  symlink-tree.symlink (customBenchmarkArchives cfg); 
        "unprocessedTrainPackage" = symlink-tree.symlink (unprocessedTrainPackage cfg);
        "unprocessedAllPackage" = symlink-tree.symlink (unprocessedAllPackage cfg);
        "unprocessedAllButBenchmarkPackage" = symlink-tree.symlink (unprocessedAllButBenchmarkPackage cfg);
@@ -802,7 +802,7 @@ in rec {
       symlink-tree.directory ( #unionAttrs ( map symlinkDrv 
       { 
        "paragraphCorpusPackage" = symlink-tree.symlink (paragraphCorpusPackage cfg);
-       "benchmarks" =  symlink-tree.symlink (customBenchmarkArchives); 
+       "benchmarks" =  symlink-tree.symlink (customBenchmarkArchives cfg); 
        "unprocessedAllButBenchmarkPackage" = symlink-tree.symlink (unprocessedAllButBenchmarkPackage cfg);
       }
      );
@@ -815,6 +815,16 @@ in rec {
   collectionArchiveCbor = collectionArchive cborExportCfg;
 
 
+  mainPackages = symlink-tree.mkSymlinkTree {  
+    name = config.productName;
+    components = symlink-tree.directory ({
+      "unprocessedAllArchiveJsonl" = symlink-tree.symlink (unprocessedAllPackage jsonlExportCfg);       
+      "unprocessedAllArchiveCbor" = symlink-tree.symlink (unprocessedAllPackage cborExportCfg); 
+      "collectionArchiveJsonl" = symlink-tree.symlink (collectionPackagesCfg jsonlExportCfg);
+      "collectionArchiveCbor" = symlink-tree.symlink (collectionPackagesCfg cborExportCfg); 
+      } // (symlinkDrv readme));
+    };
+
   mainArchives = symlink-tree.mkSymlinkTree {  
     name = config.productName;
     components = symlink-tree.directory ({
@@ -825,6 +835,7 @@ in rec {
       });
     };
 
+  main = mainPackages;  
 
   allPackages = symlink-tree.mkSymlinkTree {
     name = config.productName;
@@ -834,30 +845,12 @@ in rec {
       { 
        "unprocessedTrain" = symlink-tree.symlink (pagesTocFile unprocessedTrain);
        "paragraphCorpusPackage" = symlink-tree.symlink (paragraphCorpusPackage cfg);
-       "benchmarks" =  symlink-tree.symlink (customBenchmarkArchives); 
+       "benchmarks" =  symlink-tree.symlink (customBenchmarkArchives cfg); 
        "unprocessedTrainPackage" = symlink-tree.symlink (unprocessedTrainPackage cfg);
        "unprocessedAllPackage" = symlink-tree.symlink (unprocessedAllPackage cfg);
        "unprocessedAllButBenchmarkPackage" = symlink-tree.symlink (unprocessedAllButBenchmarkPackage cfg);
       }
      );
-  };
-
-
-  all = symlink-tree.mkSymlinkTree {
-    name = "${config.productName}-all";
-    components = 
-    let cfg = defExportCfg;
-    in symlink-tree.directory (unionAttrs ( map symlinkDrv 
-      [
-        (paragraphCorpusArchive cfg)
-        #(trainLargeArchive cfg)
-        (unprocessedTrainArchive cfg)
-        (unprocessedAllArchive cfg)
-        (unprocessedAllButBenchmarkArchive cfg)
-      ] 
-      ) // 
-      {"benchmarks" =  symlink-tree.symlink (customBenchmarkArchives);}
-      );
   };
 
 

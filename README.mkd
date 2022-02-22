@@ -1,3 +1,22 @@
+WIKIMARKS Conversion Pipeline
+=============================
+
+Convert Wikipedia dumps in various languages and harvest automatic relevance benchmarks (so-called wikimarks).
+
+Formerly, the project was designed to provide datasets for the TREC CAR track (which concluded in 2019). Since then, the project has been further developed to include
+
+- converting any Wikipedia
+- multi-lingual support (see `config.$lang.nix` and `config.$lang.yaml`)
+- JSONL-based output formats (in addition to CBOR formats)
+- including Wikidata QIDs
+- configurable article subsets for benchmarks
+- additional wikimarks for query-specific clustering and entity linking (in addition to retrieval)
+- support for incorporating custom wikimarks
+
+
+
+
+
 Required tools and libraries
 -----------------------------
 
@@ -130,12 +149,19 @@ your results will be collected in `result-dump`
 
 Create a dump with filtering, deduplication, outlines, paragraph corpus, and automatic ground truth, call
 
-`./run.sh all --arg configFile $configFile`
+`./run.sh main --arg configFile $configFile`
 
-your links to your results will be collected in  `result-all`
+your links to your results will be collected in  `result-main`. You will find separate JSONL and CBOR dumps for unprocessedAll and collection (which contains benchmarks, paragraphCorpus, and unprocessedAllButBenchmark).
 
 
-We recommend you first build a dump, then rerun with `all`. The dump will be automatically reused.
+We recommend you first build a dump, then rerun with `main`. The dump will be automatically reused.
+
+
+### XZ-compressed full dataset
+
+To automatically compress packages with xz for distribution, call
+
+`./run.sh mainArchives --arg configFile $configFile`     
 
 
 
@@ -147,7 +173,7 @@ When data is built, it still resides inside the nix store. We recommend to archi
 
 copy data out of result directory using "-L" to dereference softlinks
 ```
-rsync -L result-all $yourTargetDir
+rsync -L result-main $yourTargetDir
 ```
 
 nix tracks which files can be purged from its store through softlinks. Only when the last link (created through nix) is deleted, it will remove the build products. Until then it slowly eats up all hard drive space.
@@ -159,11 +185,5 @@ call the garbage collector of nix
 ```
 nix-gc
 ```
-
-
-UNH only: Upload data to trec-car.cs.unh.edu
----------------------------------------------
-rsync -a *v?.?*zip lava:trec-car/public_html/datareleases
-
 
 
