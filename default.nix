@@ -50,7 +50,7 @@ in rec {
   inherit carTools lib;
   defExportCfg = { exportJsonlGz = exportJsonlGz; exportCbor = exportCbor; exportJsonlSplits = exportJsonlSplits; exportFull = exportFull; };
   jsonlExportCfg =  { exportJsonlGz = false; exportCbor = false; exportJsonlSplits = true; exportFull = false; };
-  cborExportCfg = { exportJsonlGz = false; exportCbor = true; exportJsonlSplits = false; exportFull = true; };
+  cborExportCfg = { exportJsonlGz = false; exportCbor = true; exportJsonlSplits = false; exportFull = false; };
 
 
   carToolFiles = lib.concatStringsSep "\n" (lib.attrValues carToolNames);
