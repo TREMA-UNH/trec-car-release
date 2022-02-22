@@ -709,6 +709,7 @@ in rec {
       components =
           symlink-tree.directory (
             lib.listToAttrs (map (b: lib.nameValuePair b.name (symlink-tree.symlink (benchmarkArchive b cfg))) benchmarkDefList)
+            // symlinkDrv license
             // symlinkDrv readme
           );
   };
@@ -818,11 +819,12 @@ in rec {
   mainPackages = symlink-tree.mkSymlinkTree {  
     name = config.productName;
     components = symlink-tree.directory ({
-      "unprocessedAllArchiveJsonl" = symlink-tree.symlink (unprocessedAllPackage jsonlExportCfg);       
-      "unprocessedAllArchiveCbor" = symlink-tree.symlink (unprocessedAllPackage cborExportCfg); 
-      "collectionArchiveJsonl" = symlink-tree.symlink (collectionPackagesCfg jsonlExportCfg);
-      "collectionArchiveCbor" = symlink-tree.symlink (collectionPackagesCfg cborExportCfg); 
-      } // (symlinkDrv readme));
+      "unprocessedAllJsonl" = symlink-tree.symlink (unprocessedAllPackage jsonlExportCfg);       
+      "unprocessedAllCbor" = symlink-tree.symlink (unprocessedAllPackage cborExportCfg); 
+      "collectionJsonl" = symlink-tree.symlink (collectionPackagesCfg jsonlExportCfg);
+      "collectionCbor" = symlink-tree.symlink (collectionPackagesCfg cborExportCfg); 
+    }  // (symlinkDrv license)
+       // (symlinkDrv readme));
     };
 
   mainArchives = symlink-tree.mkSymlinkTree {  
